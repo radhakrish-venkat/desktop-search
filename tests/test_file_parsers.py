@@ -3,9 +3,15 @@
 
 import unittest
 import os
+import sys
 import tempfile
 import shutil
 from unittest.mock import patch, MagicMock
+
+# Add the project root directory to the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 # Import the module to test
 from pkg.file_parsers.parsers import (
