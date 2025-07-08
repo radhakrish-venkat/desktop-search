@@ -103,8 +103,8 @@ class TestFileParsers(unittest.TestCase):
         self.assertEqual(result, '')
 
     @patch('pkg.file_parsers.parsers.PDF_AVAILABLE', True)
-    @patch('pkg.file_parsers.parsers.PyPDF2')
-    def test_get_text_from_pdf(self, mock_pypdf2):
+    @patch('pkg.file_parsers.parsers.pypdf')
+    def test_get_text_from_pdf(self, mock_pypdf):
         """Test PDF file parsing."""
         # Mock PDF reader
         mock_reader = MagicMock()
@@ -113,7 +113,7 @@ class TestFileParsers(unittest.TestCase):
             MagicMock(extract_text=lambda: "Page 1 content"),
             MagicMock(extract_text=lambda: "Page 2 content")
         ]
-        mock_pypdf2.PdfReader.return_value = mock_reader
+        mock_pypdf.PdfReader.return_value = mock_reader
         
         filepath = self.create_test_file('test.pdf', 'fake pdf content')
         result = get_text_from_pdf(filepath)

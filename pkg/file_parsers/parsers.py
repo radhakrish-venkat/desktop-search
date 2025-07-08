@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
 try:
-    import PyPDF2
+    import pypdf
     PDF_AVAILABLE = True
 except ImportError:
     PDF_AVAILABLE = False
-    logger.warning("PyPDF2 not available. PDF files will be skipped.")
+    logger.warning("pypdf not available. PDF files will be skipped.")
 
 try:
     from docx import Document
@@ -96,13 +96,13 @@ def get_text_from_pdf(filepath: str) -> str:
     text = ""
     try:
         with open(filepath, 'rb') as f:
-            reader = PyPDF2.PdfReader(f)
+            reader = pypdf.PdfReader(f)
             
             # Handle encrypted PDFs
             if reader.is_encrypted:
                 try:
                     reader.decrypt("")
-                except PyPDF2.errors.FileDecryptionError:
+                except Exception:
                     logger.warning(f"Encrypted PDF requires password: {filepath}")
                     return ""
 
@@ -117,9 +117,6 @@ def get_text_from_pdf(filepath: str) -> str:
                     continue
                     
         return text.strip()
-    except PyPDF2.errors.PdfReadError as e:
-        logger.error(f"Error reading PDF file {filepath} (corrupt or unreadable): {e}")
-        return ""
     except Exception as e:
         logger.error(f"Error reading PDF file {filepath}: {e}")
         return ""
@@ -235,13 +232,15 @@ def get_text_from_pptx(filepath: str) -> str:
             
             for shape in slide.shapes:
                 # Extract text from text frames
-                if hasattr(shape, "text_frame") and shape.text_frame:
-                    if shape.text_frame.text.strip():
-                        text += shape.text_frame.text + "\n"
+                if hasattr(shape, "text_frame") and shape.text_frame:  # type: ignore
+                    text_frame = getattr(shape, "text_frame")
+                    if text_frame.text.strip():
+                        text += text_frame.text + "\n"
                 
                 # Extract text from tables
-                elif hasattr(shape, "table") and shape.table:
-                    for row in shape.table.rows:
+                elif hasattr(shape, "table") and shape.table:  # type: ignore
+                    table = getattr(shape, "table")
+                    for row in table.rows:
                         for cell in row.cells:
                             for paragraph in cell.text_frame.paragraphs:
                                 if paragraph.text.strip():
