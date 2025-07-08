@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 # Import the core logic functions from your pkg directory
 from pkg.indexer.core import build_index, save_index, load_index
 from pkg.searcher.core import search_index
+from pkg.indexer.semantic import SemanticIndexer
 
 # --- Main Click Group ---
 @click.group()
@@ -125,6 +126,127 @@ def search(query: str, load_path: Optional[str], directory: Optional[str], limit
             
     except Exception as e:
         click.echo(f"Error during search: {e}", err=True)
+        raise click.Abort()
+
+# --- Semantic Index Command ---
+@cli.command()
+@click.argument('directory', type=click.Path(exists=True, file_okay=False, dir_okay=True, resolve_path=True))
+@click.option('--db-path', '-p', default='./chroma_db', help='ChromaDB persistence directory')
+@click.option('--model', '-m', default='all-MiniLM-L6-v2', help='Sentence transformer model name')
+def semantic_index(directory: str, db_path: str, model: str):
+    """
+    Builds a semantic search index using ChromaDB and sentence-transformers.
+    
+    This creates embeddings for document chunks and stores them in a vector database
+    for semantic similarity search.
+    """
+    click.echo(f"Starting semantic indexing of directory: {directory}")
+    click.echo(f"Using model: {model}")
+    click.echo(f"ChromaDB path: {db_path}")
+    
+    try:
+        indexer = SemanticIndexer(persist_directory=db_path, model_name=model)
+        stats = indexer.build_semantic_index(directory)
+        
+        if not stats:
+            click.echo("Error: Failed to build semantic index.", err=True)
+            raise click.Abort()
+        
+        click.echo(f"Semantic indexing complete!")
+        click.echo(f"Files processed: {stats['stats']['total_files']}")
+        click.echo(f"Chunks created: {stats['stats']['total_chunks']}")
+        click.echo(f"Files skipped: {stats['stats']['skipped_files']}")
+        
+        # Store indexer in context for immediate search
+        click.get_current_context().obj = {'semantic_indexer': indexer}
+        
+    except Exception as e:
+        click.echo(f"Error during semantic indexing: {e}", err=True)
+        raise click.Abort()
+
+# --- Semantic Search Command ---
+@cli.command()
+@click.argument('query')
+@click.option('--db-path', '-p', default='./chroma_db', help='ChromaDB persistence directory')
+@click.option('--limit', '-n', default=10, help='Maximum number of results to show')
+@click.option('--threshold', '-t', default=0.3, help='Similarity threshold (0-1)')
+@click.option('--hybrid', is_flag=True, help='Use hybrid search (combines semantic and keyword matching)')
+def semantic_search(query: str, db_path: str, limit: int, threshold: float, hybrid: bool):
+    """
+    Performs semantic search on the indexed documents.
+    
+    Uses sentence embeddings to find semantically similar content,
+    even if the exact keywords don't match.
+    """
+    click.echo(f"Performing semantic search for: '{query}'")
+    click.echo(f"ChromaDB path: {db_path}")
+    
+    try:
+        # Try to get indexer from context first
+        context_obj = click.get_current_context().obj
+        if context_obj and 'semantic_indexer' in context_obj:
+            indexer = context_obj['semantic_indexer']
+        else:
+            # Create new indexer instance
+            indexer = SemanticIndexer(persist_directory=db_path)
+        
+        # Perform search
+        if hybrid:
+            click.echo("Using hybrid search (semantic + keyword matching)...")
+            results = indexer.hybrid_search(query, n_results=limit)
+        else:
+            click.echo("Using semantic search...")
+            results = indexer.semantic_search(query, n_results=limit, threshold=threshold)
+        
+        if results:
+            click.echo(f"\n--- Semantic Search Results ({len(results)} found) ---")
+            for i, result in enumerate(results, 1):
+                click.echo(f"{i}. File: {result['filename']}")
+                click.echo(f"   Path: {result['filepath']}")
+                click.echo(f"   Chunk: {result['chunk_index'] + 1}/{result['total_chunks']}")
+                
+                if 'similarity' in result:
+                    click.echo(f"   Similarity: {result['similarity']:.3f}")
+                if 'combined_score' in result:
+                    click.echo(f"   Combined Score: {result['combined_score']:.3f}")
+                
+                # Show snippet (truncated)
+                snippet = result['snippet'][:200] + "..." if len(result['snippet']) > 200 else result['snippet']
+                click.echo(f"   Snippet: {snippet}")
+                click.echo("-" * 50)
+            
+            if len(results) > limit:
+                click.echo(f"... and {len(results) - limit} more results")
+        else:
+            click.echo("No semantically similar documents found.")
+            
+    except Exception as e:
+        click.echo(f"Error during semantic search: {e}", err=True)
+        raise click.Abort()
+
+# --- Semantic Stats Command ---
+@cli.command()
+@click.option('--db-path', '-p', default='./chroma_db', help='ChromaDB persistence directory')
+def semantic_stats(db_path: str):
+    """
+    Shows statistics about the semantic index.
+    """
+    click.echo(f"Getting semantic index statistics from: {db_path}")
+    
+    try:
+        indexer = SemanticIndexer(persist_directory=db_path)
+        stats = indexer.get_collection_stats()
+        
+        if stats:
+            click.echo(f"\n--- Semantic Index Statistics ---")
+            click.echo(f"Total chunks: {stats['total_chunks']}")
+            click.echo(f"Model: {stats['model_name']}")
+            click.echo(f"Database path: {stats['persist_directory']}")
+        else:
+            click.echo("No semantic index found or error retrieving stats.")
+            
+    except Exception as e:
+        click.echo(f"Error getting semantic stats: {e}", err=True)
         raise click.Abort()
 
 if __name__ == '__main__':

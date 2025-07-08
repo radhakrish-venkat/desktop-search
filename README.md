@@ -7,13 +7,14 @@ A fast and efficient local document search tool that indexes and searches throug
 - **Multi-format Support**: Indexes PDF, DOCX, XLSX, PPTX, and TXT files
 - **Fast Search**: Uses inverted indexing for quick search results
 - **Smart Ranking**: TF-IDF scoring for relevant result ranking
+- **Semantic Search**: Advanced semantic search using ChromaDB and sentence-transformers
+- **Hybrid Search**: Combines semantic and keyword matching for better results
 - **Snippet Generation**: Shows context around search terms with highlighting
 - **Persistent Indexing**: Save and load indexes for repeated use
 - **Robust Error Handling**: Graceful handling of corrupted or unsupported files
 - **Progress Tracking**: Shows indexing progress for large directories
 - **Type Safety**: Full type hints throughout the codebase
 - **Comprehensive Testing**: Unit and integration tests for all components
-- **Semantic Search** (Planned): Local sentence transformer integration for meaning-based search
 
 ## Installation
 
@@ -32,10 +33,12 @@ pip install -r requirements.txt
 
 The following packages are required:
 - `click` - Command-line interface
-- `PyPDF2` - PDF text extraction
+- `pypdf` - PDF text extraction
 - `python-docx` - Word document parsing
 - `openpyxl` - Excel spreadsheet parsing
 - `python-pptx` - PowerPoint presentation parsing
+- `chromadb` - Vector database for semantic search
+- `sentence-transformers` - Sentence embeddings for semantic search
 
 ## Usage
 
@@ -86,6 +89,38 @@ python main.py index --help
 python main.py search --help
 ```
 
+### Semantic Search Commands
+
+**Build semantic index:**
+```bash
+python main.py semantic-index /path/to/your/documents
+```
+
+**Semantic search:**
+```bash
+python main.py semantic-search "your semantic query"
+```
+
+**Hybrid search (semantic + keyword):**
+```bash
+python main.py semantic-search "your query" --hybrid
+```
+
+**Get semantic index statistics:**
+```bash
+python main.py semantic-stats
+```
+
+**Custom ChromaDB path:**
+```bash
+python main.py semantic-index /path/to/documents --db-path ./my_chroma_db
+```
+
+**Use different sentence transformer model:**
+```bash
+python main.py semantic-index /path/to/documents --model all-mpnet-base-v2
+```
+
 ## Examples
 
 ### Indexing Documents
@@ -127,6 +162,44 @@ Searching for: 'javascript'
    Snippet: ...JavaScript code for the web application...
 ```
 
+### Semantic Search Examples
+```bash
+# Build semantic index
+$ python main.py semantic-index ~/Documents
+Starting semantic indexing of directory: /Users/username/Documents
+Using model: all-MiniLM-L6-v2
+ChromaDB path: ./chroma_db
+Semantic indexing complete!
+Files processed: 245
+Chunks created: 1200
+Files skipped: 12
+
+# Semantic search for concepts
+$ python main.py semantic-search "machine learning algorithms"
+Performing semantic search for: 'machine learning algorithms'
+ChromaDB path: ./chroma_db
+
+--- Semantic Search Results (3 found) ---
+1. File: ai_research.pdf
+   Path: /Users/username/Documents/research/ai_research.pdf
+   Chunk: 2/5
+   Similarity: 0.892
+   Snippet: The study explores various machine learning algorithms including neural networks, decision trees, and support vector machines...
+
+# Hybrid search combining semantic and keyword matching
+$ python main.py semantic-search "data analysis techniques" --hybrid
+Performing semantic search for: 'data analysis techniques'
+ChromaDB path: ./chroma_db
+Using hybrid search (semantic + keyword matching)...
+
+--- Semantic Search Results (2 found) ---
+1. File: statistics_guide.docx
+   Path: /Users/username/Documents/guides/statistics_guide.docx
+   Chunk: 1/3
+   Combined Score: 0.945
+   Snippet: This guide covers statistical analysis methods, data visualization techniques, and hypothesis testing procedures...
+```
+
 ## Supported File Formats
 
 | Format | Extension | Description | Dependencies |
@@ -145,14 +218,17 @@ The project follows a modular architecture with clear separation of concerns:
 - **`cli_commands/cli.py`**: Command-line interface using Click framework
 - **`pkg/file_parsers/parsers.py`**: File format parsers for text extraction
 - **`pkg/indexer/core.py`**: Indexing engine with inverted index and TF-IDF
+- **`pkg/indexer/semantic.py`**: Semantic indexing using ChromaDB and sentence-transformers
 - **`pkg/searcher/core.py`**: Search engine with ranking and snippet generation
 
 ### Key Components
 
 1. **File Parsers**: Extract text from various file formats with error handling
 2. **Indexer**: Builds inverted index for fast searching with tokenization and stop word filtering
-3. **Searcher**: Performs ranked search using TF-IDF scoring with snippet generation
-4. **CLI**: User-friendly command-line interface with help and error handling
+3. **Semantic Indexer**: Creates document embeddings and stores them in ChromaDB for semantic search
+4. **Searcher**: Performs ranked search using TF-IDF scoring with snippet generation
+5. **Semantic Searcher**: Performs semantic similarity search using sentence embeddings
+6. **CLI**: User-friendly command-line interface with help and error handling
 
 ## Performance
 
@@ -161,6 +237,28 @@ The project follows a modular architecture with clear separation of concerns:
 - **Memory**: Efficient memory usage with file size limits (50MB per file)
 - **Storage**: Index files are typically 10-20% of original document size
 - **Scalability**: Handles large directories with progress tracking
+
+## Semantic Search Features
+
+### Document Chunking
+- **Smart Chunking**: Documents are split into overlapping chunks (1000 characters by default)
+- **Sentence Boundary Awareness**: Chunks are created at sentence boundaries when possible
+- **Overlap**: 200-character overlap between chunks to maintain context
+
+### Embedding Models
+- **Default Model**: `all-MiniLM-L6-v2` (fast and efficient)
+- **Alternative Models**: Support for other sentence transformer models
+- **Model Loading**: Automatic model download and caching
+
+### Search Types
+- **Semantic Search**: Pure semantic similarity using sentence embeddings
+- **Hybrid Search**: Combines semantic similarity with keyword matching
+- **Configurable Thresholds**: Adjustable similarity thresholds for result filtering
+
+### Vector Database
+- **ChromaDB**: Persistent vector database for storing embeddings
+- **Cosine Similarity**: Uses cosine distance for similarity calculations
+- **Efficient Retrieval**: Fast similarity search with configurable result limits
 
 ## Configuration
 
