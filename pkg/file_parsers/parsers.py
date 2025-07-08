@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 from typing import Tuple, Optional, Union
 import logging
 
@@ -9,6 +10,36 @@ logger = logging.getLogger(__name__)
 
 # File size limit (50MB) to prevent memory issues
 MAX_FILE_SIZE = 50 * 1024 * 1024
+
+# Suspicious patterns to detect in file content
+SUSPICIOUS_PATTERNS = [
+    r'<script[^>]*>.*?</script>',  # Script tags
+    r'javascript:',                # JavaScript protocol
+    r'data:text/html',            # Data URLs
+    r'vbscript:',                 # VBScript
+    r'<iframe[^>]*>',             # Iframe tags
+    r'onload\s*=',                # Event handlers
+    r'onerror\s*=',               # Event handlers
+    r'onclick\s*=',               # Event handlers
+    r'<object[^>]*>',             # Object tags
+    r'<embed[^>]*>',              # Embed tags
+    r'<applet[^>]*>',             # Applet tags
+    r'<meta[^>]*http-equiv[^>]*refresh[^>]*>',  # Meta refresh
+    r'<link[^>]*javascript[^>]*>',  # JavaScript links
+    r'<a[^>]*href\s*=\s*["\']javascript:',  # JavaScript links
+]
+
+# Supported MIME types for file processing
+SUPPORTED_MIME_TYPES = {
+    'text/plain': '.txt',
+    'application/pdf': '.pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+    'application/msword': '.doc',
+    'application/vnd.ms-excel': '.xls',
+    'application/vnd.ms-powerpoint': '.ppt',
+}
 
 try:
     import pypdf
@@ -46,9 +77,63 @@ def _check_file_size(filepath: str) -> bool:
     except OSError:
         return False
 
+def _validate_file_content(filepath: str, content: str) -> bool:
+    """
+    Validate file content for suspicious patterns.
+    
+    Args:
+        filepath: Path to the file being validated
+        content: File content to validate
+        
+    Returns:
+        True if content is safe, False if suspicious patterns detected
+    """
+    if not content:
+        return True
+    
+    for pattern in SUSPICIOUS_PATTERNS:
+        if re.search(pattern, content, re.IGNORECASE | re.DOTALL):
+            logger.warning(f"Suspicious content detected in {filepath}: {pattern}")
+            return False
+    
+    return True
+
+def _get_file_mime_type(filepath: str) -> Optional[str]:
+    """
+    Get MIME type of file using python-magic if available.
+    
+    Args:
+        filepath: Path to the file
+        
+    Returns:
+        MIME type string or None if detection fails
+    """
+    try:
+        import magic
+        return magic.from_file(filepath, mime=True)
+    except ImportError:
+        # Fallback to file extension if python-magic not available
+        logger.debug("python-magic not available, using file extension for MIME type detection")
+        return None
+    except Exception as e:
+        logger.debug(f"Error detecting MIME type for {filepath}: {e}")
+        return None
+
+def _is_supported_mime_type(mime_type: str) -> bool:
+    """
+    Check if MIME type is supported for processing.
+    
+    Args:
+        mime_type: MIME type to check
+        
+    Returns:
+        True if supported, False otherwise
+    """
+    return mime_type in SUPPORTED_MIME_TYPES
+
 def get_text_from_txt(filepath: str) -> str:
     """
-    Extracts text from a plain text file (.txt).
+    Extracts text from a plain text file.
     
     Args:
         filepath: Path to the text file
@@ -66,7 +151,14 @@ def get_text_from_txt(filepath: str) -> str:
         for encoding in encodings:
             try:
                 with open(filepath, 'r', encoding=encoding) as f:
-                    return f.read()
+                    content = f.read()
+                    
+                    # Validate content for suspicious patterns
+                    if not _validate_file_content(filepath, content):
+                        logger.warning(f"Content validation failed for {filepath}")
+                        return ""
+                    
+                    return content
             except UnicodeDecodeError:
                 continue
         logger.error(f"Could not decode text file: {filepath}")
@@ -254,6 +346,7 @@ def get_text_from_pptx(filepath: str) -> str:
 def get_text_from_file(filepath: str) -> Tuple[Optional[str], str]:
     """
     Dispatches to the correct text extraction function based on file extension.
+    Includes security validation for file content.
     
     Args:
         filepath: Path to the file to extract text from
@@ -261,27 +354,40 @@ def get_text_from_file(filepath: str) -> Tuple[Optional[str], str]:
     Returns:
         Tuple of (extracted_text, file_extension)
     """
-    # Check if file exists first
     if not os.path.exists(filepath):
-        return None, os.path.splitext(filepath)[1].lower()
+        logger.error(f"File not found: {filepath}")
+        return None, ""
     
-    _, ext = os.path.splitext(filepath)
-    ext = ext.lower()
-
-    # Supported file types
-    if ext in ['.txt', '.md', '.ini', '.cfg', '.conf', '.log', '.csv']:
-        return get_text_from_txt(filepath), ext
-    elif ext == '.pdf':
-        return get_text_from_pdf(filepath), ext
-    elif ext == '.docx':
-        return get_text_from_docx(filepath), ext
-    elif ext == '.xlsx':
-        return get_text_from_xlsx(filepath), ext
-    elif ext == '.pptx':
-        return get_text_from_pptx(filepath), ext
-    else:
-        # Unsupported file type
+    # Get file extension
+    _, ext = os.path.splitext(filepath.lower())
+    
+    # Try to detect MIME type for additional validation
+    mime_type = _get_file_mime_type(filepath)
+    if mime_type and not _is_supported_mime_type(mime_type):
+        logger.warning(f"Unsupported MIME type {mime_type} for file {filepath}")
         return None, ext
+    
+    # Extract text based on file extension
+    if ext == '.txt':
+        content = get_text_from_txt(filepath)
+    elif ext == '.pdf':
+        content = get_text_from_pdf(filepath)
+    elif ext == '.docx':
+        content = get_text_from_docx(filepath)
+    elif ext == '.xlsx':
+        content = get_text_from_xlsx(filepath)
+    elif ext == '.pptx':
+        content = get_text_from_pptx(filepath)
+    else:
+        logger.warning(f"Unsupported file extension: {ext}")
+        return None, ext
+    
+    # Final content validation
+    if content and not _validate_file_content(filepath, content):
+        logger.warning(f"Final content validation failed for {filepath}")
+        return None, ext
+    
+    return content, ext
 
 # Test function for standalone testing
 if __name__ == '__main__':

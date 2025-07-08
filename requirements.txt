@@ -1,12 +1,25 @@
+# Core dependencies
 click>=8.0.0
 pypdf>=3.0.0
 python-docx>=0.8.11
 openpyxl>=3.0.0
 python-pptx>=0.6.21
-pytest>=7.0.0
+
+# Semantic search dependencies
 chromadb>=0.4.0
 sentence-transformers>=2.2.0
-google-auth>=2.17.0
+
+# Google Drive integration
+google-auth>=2.0.0
 google-auth-oauthlib>=1.0.0
 google-auth-httplib2>=0.1.0
 google-api-python-client>=2.0.0
+
+# Security dependencies
+cryptography>=3.4.0
+keyring>=23.0.0
+python-magic>=0.4.24
+
+# Development and testing
+pytest>=7.0.0
+pytest-cov>=4.0.0

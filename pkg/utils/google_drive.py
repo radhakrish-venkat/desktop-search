@@ -1,62 +1,158 @@
 import os
 import io
+import json
 import tempfile
 import logging
-from typing import List, Dict, Optional, Any, Generator
-from pathlib import Path
+from typing import Optional, List, Dict, Any, Generator
+from datetime import datetime, timedelta
 
+# Configure logging
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+
+# Google Drive API scopes - read-only access
+SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+
+# Check for Google Drive API availability
 try:
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
     from googleapiclient.discovery import build
-    from googleapiclient.http import MediaIoBaseDownload
     from googleapiclient.errors import HttpError
+    from googleapiclient.http import MediaIoBaseDownload
     GOOGLE_DRIVE_AVAILABLE = True
 except ImportError:
     GOOGLE_DRIVE_AVAILABLE = False
-    logging.warning("Google Drive API not available. Install google-auth, google-auth-oauthlib, google-auth-httplib2, and google-api-python-client")
+    logger.warning("Google Drive API dependencies not available")
 
-logger = logging.getLogger(__name__)
-
-# If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+class SecureTokenStorage:
+    """Secure storage for Google Drive authentication tokens."""
+    
+    def __init__(self):
+        self.key = self._get_or_create_key()
+        self.cipher = self._create_cipher()
+    
+    def _get_or_create_key(self) -> bytes:
+        """Get or create encryption key using system keyring."""
+        try:
+            import keyring
+            key = keyring.get_password("desktop-search", "encryption_key")
+            if not key:
+                # Generate new key
+                import base64
+                from cryptography.fernet import Fernet
+                key = base64.urlsafe_b64encode(Fernet.generate_key()).decode()
+                keyring.set_password("desktop-search", "encryption_key", key)
+            return key.encode()
+        except ImportError:
+            # Fallback to file-based key storage if keyring not available
+            logger.warning("keyring not available, using file-based key storage")
+            return self._get_or_create_file_key()
+    
+    def _get_or_create_file_key(self) -> bytes:
+        """Fallback key storage in file."""
+        key_file = os.path.join(os.path.expanduser('~'), '.config', 'desktop-search', '.key')
+        os.makedirs(os.path.dirname(key_file), exist_ok=True)
+        
+        if os.path.exists(key_file):
+            with open(key_file, 'rb') as f:
+                return f.read()
+        else:
+            import base64
+            from cryptography.fernet import Fernet
+            key = Fernet.generate_key()
+            with open(key_file, 'wb') as f:
+                f.write(key)
+            # Set restrictive permissions
+            os.chmod(key_file, 0o600)
+            return key
+    
+    def _create_cipher(self):
+        """Create encryption cipher."""
+        try:
+            from cryptography.fernet import Fernet
+            return Fernet(self.key)
+        except ImportError:
+            logger.warning("cryptography not available, using plain text storage")
+            return None
+    
+    def save_token(self, token_data: str, filepath: str) -> bool:
+        """Save encrypted token to file."""
+        try:
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            
+            if self.cipher:
+                encrypted_data = self.cipher.encrypt(token_data.encode())
+                with open(filepath, 'wb') as f:
+                    f.write(encrypted_data)
+            else:
+                # Fallback to plain text if encryption not available
+                with open(filepath, 'w') as f:
+                    f.write(token_data)
+            
+            # Set restrictive permissions
+            os.chmod(filepath, 0o600)
+            return True
+        except Exception as e:
+            logger.error(f"Error saving token: {e}")
+            return False
+    
+    def load_token(self, filepath: str) -> Optional[str]:
+        """Load and decrypt token from file."""
+        try:
+            if not os.path.exists(filepath):
+                return None
+            
+            if self.cipher:
+                with open(filepath, 'rb') as f:
+                    encrypted_data = f.read()
+                return self.cipher.decrypt(encrypted_data).decode()
+            else:
+                # Fallback to plain text if encryption not available
+                with open(filepath, 'r') as f:
+                    return f.read()
+        except Exception as e:
+            logger.error(f"Error loading token: {e}")
+            return None
 
 class GoogleDriveClient:
     """
-    A client for interacting with Google Drive API.
-    Handles authentication, file listing, and downloading.
+    Client for interacting with Google Drive API with secure token storage.
     """
     
     def __init__(self, credentials_path: Optional[str] = None, token_path: Optional[str] = None):
         """
-        Initialize the Google Drive client.
+        Initialize Google Drive client.
         
         Args:
-            credentials_path: Path to the credentials.json file from Google Cloud Console
-            token_path: Path to store/load the OAuth token
+            credentials_path: Path to credentials.json file
+            token_path: Path to store authentication token
         """
         if not GOOGLE_DRIVE_AVAILABLE:
-            raise ImportError("Google Drive API dependencies not available")
-            
+            raise RuntimeError("Google Drive API dependencies not available")
+        
         self.credentials_path = credentials_path or os.path.join(os.path.expanduser('~'), '.config', 'desktop-search', 'credentials.json')
         self.token_path = token_path or os.path.join(os.path.expanduser('~'), '.config', 'desktop-search', 'token.json')
         self.service = None
+        self.token_storage = SecureTokenStorage()
+        
         self._authenticate()
     
     def _authenticate(self):
-        """Authenticate with Google Drive API using OAuth2."""
+        """Authenticate with Google Drive API using secure token storage."""
         creds = None
         
-        # The file token.json stores the user's access and refresh tokens,
-        # and is created automatically when the authorization flow completes for the first time.
+        # Try to load existing token
         if os.path.exists(self.token_path):
             try:
-                creds = Credentials.from_authorized_user_file(self.token_path, SCOPES)
+                token_data = self.token_storage.load_token(self.token_path)
+                if token_data:
+                    creds = Credentials.from_authorized_user_info(json.loads(token_data), SCOPES)
             except Exception as e:
                 logger.warning(f"Error loading existing token: {e}")
         
-        # If there are no (valid) credentials available, let the user log in.
+        # If no valid credentials available, let the user log in
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 try:
@@ -76,10 +172,8 @@ class GoogleDriveClient:
                 flow = InstalledAppFlow.from_client_secrets_file(self.credentials_path, SCOPES)
                 creds = flow.run_local_server(port=0)
             
-            # Save the credentials for the next run
-            os.makedirs(os.path.dirname(self.token_path), exist_ok=True)
-            with open(self.token_path, 'w') as token:
-                token.write(creds.to_json())
+            # Save the credentials securely
+            self.token_storage.save_token(creds.to_json(), self.token_path)
         
         self.service = build('drive', 'v3', credentials=creds)
         logger.info("Successfully authenticated with Google Drive API")
