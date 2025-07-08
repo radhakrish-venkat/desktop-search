@@ -106,24 +106,7 @@ A fast and efficient local document search tool that indexes and searches throug
 
 **For full details, see [SECURITY.md](SECURITY.md).**
 
-## Security
 
-### **Security Features**
-The application includes comprehensive security measures to protect your data:
-
-- **Index File Integrity**: All index files include SHA256 integrity hashes to detect tampering
-- **Content Validation**: Automatic detection and rejection of suspicious file content
-- **Secure Authentication**: Google Drive tokens encrypted using system keyring or file-based encryption
-- **Sanitized Logging**: Automatic redaction of sensitive paths and information in logs
-- **Input Validation**: Comprehensive validation of all user inputs and file paths
-- **No Code Execution**: No use of eval(), exec(), or shell commands
-
-### **Security Best Practices**
-- Keep index files in secure locations
-- Use dedicated Google Drive service accounts with minimal permissions
-- Regularly update dependencies for security patches
-- Verify file sources before indexing
-- Monitor logs for any security-related warnings
 
 For detailed security information, see [SECURITY.md](SECURITY.md).
 
