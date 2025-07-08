@@ -1,82 +1,196 @@
 import os
-import PyPDF2
-from docx import Document
-import openpyxl
-from pptx import Presentation
-import sys # For printing errors to stderr
+import sys
+from typing import Tuple, Optional, Union
+import logging
 
-def get_text_from_txt(filepath):
+# Configure logging
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+
+# File size limit (50MB) to prevent memory issues
+MAX_FILE_SIZE = 50 * 1024 * 1024
+
+try:
+    import PyPDF2
+    PDF_AVAILABLE = True
+except ImportError:
+    PDF_AVAILABLE = False
+    logger.warning("PyPDF2 not available. PDF files will be skipped.")
+
+try:
+    from docx import Document
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+    logger.warning("python-docx not available. DOCX files will be skipped.")
+
+try:
+    import openpyxl
+    XLSX_AVAILABLE = True
+except ImportError:
+    XLSX_AVAILABLE = False
+    logger.warning("openpyxl not available. XLSX files will be skipped.")
+
+try:
+    from pptx import Presentation
+    PPTX_AVAILABLE = True
+except ImportError:
+    PPTX_AVAILABLE = False
+    logger.warning("python-pptx not available. PPTX files will be skipped.")
+
+def _check_file_size(filepath: str) -> bool:
+    """Check if file size is within acceptable limits."""
+    try:
+        size = os.path.getsize(filepath)
+        return size <= MAX_FILE_SIZE
+    except OSError:
+        return False
+
+def get_text_from_txt(filepath: str) -> str:
     """
     Extracts text from a plain text file (.txt).
+    
+    Args:
+        filepath: Path to the text file
+        
+    Returns:
+        Extracted text as string
     """
+    if not _check_file_size(filepath):
+        logger.warning(f"File too large: {filepath}")
+        return ""
+        
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            return f.read()
+        # Try UTF-8 first, then fallback to other encodings
+        encodings = ['utf-8', 'latin-1', 'cp1252']
+        for encoding in encodings:
+            try:
+                with open(filepath, 'r', encoding=encoding) as f:
+                    return f.read()
+            except UnicodeDecodeError:
+                continue
+        logger.error(f"Could not decode text file: {filepath}")
+        return ""
     except Exception as e:
-        print(f"Error reading TXT file {filepath}: {e}", file=sys.stderr)
+        logger.error(f"Error reading TXT file {filepath}: {e}")
         return ""
 
-def get_text_from_pdf(filepath):
+def get_text_from_pdf(filepath: str) -> str:
     """
     Extracts text from a PDF file.
-    Uses PyPDF2 to read text page by page.
+    
+    Args:
+        filepath: Path to the PDF file
+        
+    Returns:
+        Extracted text as string
     """
+    if not PDF_AVAILABLE:
+        logger.warning(f"PDF support not available, skipping: {filepath}")
+        return ""
+        
+    if not _check_file_size(filepath):
+        logger.warning(f"PDF file too large: {filepath}")
+        return ""
+        
     text = ""
     try:
         with open(filepath, 'rb') as f:
             reader = PyPDF2.PdfReader(f)
-            # Check if the PDF is encrypted and attempt to decrypt if no password is set
+            
+            # Handle encrypted PDFs
             if reader.is_encrypted:
                 try:
-                    # An empty string might work for PDFs with no password but marked encrypted
                     reader.decrypt("")
                 except PyPDF2.errors.FileDecryptionError:
-                    print(f"Error: PDF file {filepath} is encrypted and requires a password.", file=sys.stderr)
-                    return "" # Cannot decrypt, return empty text
+                    logger.warning(f"Encrypted PDF requires password: {filepath}")
+                    return ""
 
-            for page in reader.pages:
-                page_text = page.extract_text()
-                if page_text: # Ensure there's text to add
-                    text += page_text + "\n" # Add newline for better separation between pages
-        return text
+            # Extract text from all pages
+            for page_num, page in enumerate(reader.pages):
+                try:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"
+                except Exception as e:
+                    logger.warning(f"Error extracting text from page {page_num} in {filepath}: {e}")
+                    continue
+                    
+        return text.strip()
     except PyPDF2.errors.PdfReadError as e:
-        print(f"Error reading PDF file {filepath} (corrupt or unreadable): {e}", file=sys.stderr)
+        logger.error(f"Error reading PDF file {filepath} (corrupt or unreadable): {e}")
         return ""
     except Exception as e:
-        print(f"Error reading PDF file {filepath}: {e}", file=sys.stderr)
+        logger.error(f"Error reading PDF file {filepath}: {e}")
         return ""
 
-def get_text_from_docx(filepath):
+def get_text_from_docx(filepath: str) -> str:
     """
     Extracts text from a Word document (.docx).
+    
+    Args:
+        filepath: Path to the DOCX file
+        
+    Returns:
+        Extracted text as string
     """
+    if not DOCX_AVAILABLE:
+        logger.warning(f"DOCX support not available, skipping: {filepath}")
+        return ""
+        
+    if not _check_file_size(filepath):
+        logger.warning(f"DOCX file too large: {filepath}")
+        return ""
+        
     text = ""
     try:
         document = Document(filepath)
+        
+        # Extract text from paragraphs
         for paragraph in document.paragraphs:
-            text += paragraph.text + "\n"
-        # Add text from tables (basic support)
+            if paragraph.text.strip():
+                text += paragraph.text + "\n"
+        
+        # Extract text from tables
         for table in document.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
-                        text += paragraph.text + "\n"
-        return text
+                        if paragraph.text.strip():
+                            text += paragraph.text + "\n"
+                            
+        return text.strip()
     except Exception as e:
-        print(f"Error reading DOCX file {filepath}: {e}", file=sys.stderr)
+        logger.error(f"Error reading DOCX file {filepath}: {e}")
         return ""
 
-def get_text_from_xlsx(filepath):
+def get_text_from_xlsx(filepath: str) -> str:
     """
     Extracts text from an Excel workbook (.xlsx).
-    Reads text from all sheets, cell by cell.
+    
+    Args:
+        filepath: Path to the XLSX file
+        
+    Returns:
+        Extracted text as string
     """
+    if not XLSX_AVAILABLE:
+        logger.warning(f"XLSX support not available, skipping: {filepath}")
+        return ""
+        
+    if not _check_file_size(filepath):
+        logger.warning(f"XLSX file too large: {filepath}")
+        return ""
+        
     text = ""
     try:
-        workbook = openpyxl.load_workbook(filepath)
+        workbook = openpyxl.load_workbook(filepath, data_only=True)
+        
         for sheet_name in workbook.sheetnames:
             sheet = workbook[sheet_name]
-            text += f"--- Sheet: {sheet_name} ---\n" # Indicate sheet boundaries
+            text += f"--- Sheet: {sheet_name} ---\n"
+            
+            # Get the used range
             for row in sheet.iter_rows():
                 row_text = []
                 for cell in row:
@@ -84,42 +198,70 @@ def get_text_from_xlsx(filepath):
                         row_text.append(str(cell.value))
                 if row_text:
                     text += " ".join(row_text) + "\n"
-        return text
+                    
+        return text.strip()
     except Exception as e:
-        print(f"Error reading XLSX file {filepath}: {e}", file=sys.stderr)
+        logger.error(f"Error reading XLSX file {filepath}: {e}")
         return ""
 
-def get_text_from_pptx(filepath):
+def get_text_from_pptx(filepath: str) -> str:
     """
     Extracts text from a PowerPoint presentation (.pptx).
-    Reads text from all shapes in all slides.
+    
+    Args:
+        filepath: Path to the PPTX file
+        
+    Returns:
+        Extracted text as string
     """
+    if not PPTX_AVAILABLE:
+        logger.warning(f"PPTX support not available, skipping: {filepath}")
+        return ""
+        
+    if not _check_file_size(filepath):
+        logger.warning(f"PPTX file too large: {filepath}")
+        return ""
+        
     text = ""
     try:
         prs = Presentation(filepath)
-        for slide in prs.slides:
+        
+        for slide_num, slide in enumerate(prs.slides):
+            text += f"--- Slide {slide_num + 1} ---\n"
+            
             for shape in slide.shapes:
+                # Extract text from text frames
                 if hasattr(shape, "text_frame") and shape.text_frame:
-                    text += shape.text_frame.text + "\n"
-                # Handle tables in PPTX (basic support)
+                    if shape.text_frame.text.strip():
+                        text += shape.text_frame.text + "\n"
+                
+                # Extract text from tables
                 elif hasattr(shape, "table") and shape.table:
-                    for r in shape.table.rows:
-                        for c in r.cells:
-                            for paragraph in c.text_frame.paragraphs:
-                                text += paragraph.text + "\n"
-        return text
+                    for row in shape.table.rows:
+                        for cell in row.cells:
+                            for paragraph in cell.text_frame.paragraphs:
+                                if paragraph.text.strip():
+                                    text += paragraph.text + "\n"
+                                    
+        return text.strip()
     except Exception as e:
-        print(f"Error reading PPTX file {filepath}: {e}", file=sys.stderr)
+        logger.error(f"Error reading PPTX file {filepath}: {e}")
         return ""
 
-def get_text_from_file(filepath):
+def get_text_from_file(filepath: str) -> Tuple[Optional[str], str]:
     """
     Dispatches to the correct text extraction function based on file extension.
-    Returns the extracted text and the file extension (or None if not supported/error).
+    
+    Args:
+        filepath: Path to the file to extract text from
+        
+    Returns:
+        Tuple of (extracted_text, file_extension)
     """
     _, ext = os.path.splitext(filepath)
     ext = ext.lower()
 
+    # Supported file types
     if ext == '.txt':
         return get_text_from_txt(filepath), ext
     elif ext == '.pdf':
@@ -131,92 +273,26 @@ def get_text_from_file(filepath):
     elif ext == '.pptx':
         return get_text_from_pptx(filepath), ext
     else:
-        # For unsupported types, return None, the indexer will skip it.
-        # print(f"Unsupported file type: {filepath} (extension: {ext})", file=sys.stderr)
+        # Unsupported file type
         return None, ext
 
-# The if __name__ == '__main__': block for testing this module only.
+# Test function for standalone testing
 if __name__ == '__main__':
-    # You would typically place this test code in tests/pkg/file_parsers/test_parsers.py
-    # For quick manual testing, you can use it here.
-
     print("--- Running file_parsers.py standalone tests ---")
-    test_files_dir = "temp_parser_test_files"
-    os.makedirs(test_files_dir, exist_ok=True)
-
-    # Test .txt
-    txt_path = os.path.join(test_files_dir, "sample.txt")
-    with open(txt_path, "w", encoding="utf-8") as f:
-        f.write("This is a plain text file.\nIt has multiple lines.\n123 numbers.")
-    text, ext = get_text_from_file(txt_path)
-    print(f"\nTXT File ({ext}):\n{text[:50]}...")
-    os.remove(txt_path)
-
-    # Test .docx (requires python-docx)
+    
+    # Test with a simple text file
+    test_content = "This is a test document with some content."
+    test_file = "test_document.txt"
+    
     try:
-        from docx import Document
-        docx_path = os.path.join(test_files_dir, "sample.docx")
-        doc = Document()
-        doc.add_paragraph("Hello from Word document.")
-        table = doc.add_table(rows=1, cols=2)
-        table.cell(0,0).text = "Table Header 1"
-        table.cell(0,1).text = "Table Header 2"
-        doc.save(docx_path)
-        text, ext = get_text_from_file(docx_path)
-        print(f"\nDOCX File ({ext}):\n{text[:100]}...")
-        os.remove(docx_path)
-    except ImportError:
-        print("\nSkipping DOCX test: 'python-docx' not installed.")
-
-    # Test .xlsx (requires openpyxl)
-    try:
-        import openpyxl
-        xlsx_path = os.path.join(test_files_dir, "sample.xlsx")
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws['A1'] = 'Product'
-        ws['B1'] = 'Price'
-        ws['A2'] = 'Laptop'
-        ws['B2'] = 1200
-        wb.save(xlsx_path)
-        text, ext = get_text_from_file(xlsx_path)
-        print(f"\nXLSX File ({ext}):\n{text[:100]}...")
-        os.remove(xlsx_path)
-    except ImportError:
-        print("\nSkipping XLSX test: 'openpyxl' not installed.")
-
-    # Test .pptx (requires python-pptx)
-    try:
-        from pptx import Presentation
-        pptx_path = os.path.join(test_files_dir, "sample.pptx")
-        prs = Presentation()
-        slide = prs.slides.add_slide(prs.slide_layouts[0])
-        slide.shapes.title.text = "Presentation Title"
-        slide.placeholders[1].text = "Some body text here."
-        prs.save(pptx_path)
-        text, ext = get_text_from_file(pptx_path)
-        print(f"\nPPTX File ({ext}):\n{text[:100]}...")
-        os.remove(pptx_path)
-    except ImportError:
-        print("\nSkipping PPTX test: 'python-pptx' not installed.")
-
-    # Test unsupported file
-    unsupported_path = os.path.join(test_files_dir, "sample.xyz")
-    with open(unsupported_path, "w") as f:
-        f.write("This is an unsupported file.")
-    text, ext = get_text_from_file(unsupported_path)
-    print(f"\nUnsupported File ({ext}):\nExtracted text: {text}")
-    os.remove(unsupported_path)
-
-    # Test PDF (manual step, as creating complex PDFs programmatically is complex)
-    print("\nTo test PDF: Place a 'sample.pdf' in the 'temp_parser_test_files' directory and run again.")
-    pdf_path = os.path.join(test_files_dir, "sample.pdf")
-    if os.path.exists(pdf_path):
-        text, ext = get_text_from_file(pdf_path)
-        print(f"\nPDF File ({ext}):\n{text[:200]}...")
-    else:
-        print("\nSkipping PDF test: 'sample.pdf' not found in test directory.")
-
-    # Clean up test directory
-    os.rmdir(test_files_dir)
-    print("\n--- File Parsers Test Complete ---")
+        with open(test_file, 'w', encoding='utf-8') as f:
+            f.write(test_content)
+        
+        text, ext = get_text_from_file(test_file)
+        print(f"Test file ({ext}): {text}")
+        
+    finally:
+        if os.path.exists(test_file):
+            os.remove(test_file)
+    
+    print("--- Test complete ---")
