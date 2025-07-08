@@ -1,26 +1,126 @@
 {
   "local_files": {
-    "/Users/radhakrishnan.venkat/Documents/vscode/desktop-search/test_docs/doc1.txt": {
-      "size": 50,
-      "mtime": 1751952709.014129,
-      "hash": "8556e0737fe2e848f5f6d4f0fecc0acec7de018566b9618e79115ca7bb2dff56"
+    "/Users/radhakrishnan.venkat/Downloads/Offer Documents_encrypted_-2.pdf": {
+      "size": 489863,
+      "mtime": 1751438476.0607808,
+      "hash": "c728e8a38eccd54f704c0d273c04cc382fa362aac2734ac56496e6e2ac94e010"
     },
-    "/Users/radhakrishnan.venkat/Documents/vscode/desktop-search/test_docs/doc3.txt": {
-      "size": 61,
-      "mtime": 1751952709.0182822,
-      "hash": "c8c6e4e2a9eabd93f86898adedd463c1628a9b607191bbb70fd1ffbc81cf66bd"
+    "/Users/radhakrishnan.venkat/Downloads/IMG_0003.JPG": {
+      "size": 1953509,
+      "mtime": 1751712419.222659,
+      "hash": "02307ca140d79f7451430ad2496230b76a30e1b7093559d32f11cdb1ba68b98a"
     },
-    "/Users/radhakrishnan.venkat/Documents/vscode/desktop-search/test_docs/doc2.txt": {
-      "size": 66,
-      "mtime": 1751952709.0175447,
-      "hash": "022cf1a6e5f2b86b1684b0c6f5726306c8ab1d1dabb5b9e2b66cb985976f5646"
+    "/Users/radhakrishnan.venkat/Downloads/t.csv": {
+      "size": 989,
+      "mtime": 1751943330.5755706,
+      "hash": "53da34c2abc4b9731e59a9fe2eef153ab342443655c0e066c325d84d878568a3"
     },
-    "/Users/radhakrishnan.venkat/Documents/vscode/desktop-search/test_docs/index.pkl": {
-      "size": 1051,
-      "mtime": 1751985598.9948025,
-      "hash": "4058f6dc97bfab06b17c03dc7f514b7b3b63029e0e48304f3e5ac7c87f2841ef"
+    "/Users/radhakrishnan.venkat/Downloads/Acceptance Letter for submission.pdf": {
+      "size": 514913,
+      "mtime": 1751637447.0952048,
+      "hash": "61ab0a874b69505b3f0238f409402c762decce6e4005bd789ee646174d9a29c3"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/.DS_Store": {
+      "size": 14340,
+      "mtime": 1751960059.1449068,
+      "hash": "1f60c1cb4eb4b7e1370564bc015a6e5a54bc7b06d5bd9eb54891aa8f6f9f9f19"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/HK Exchange 2025 - Registration Forms.doc": {
+      "size": 69632,
+      "mtime": 1751638635.28141,
+      "hash": "ef7258879c8edeb86f24f04170ccd80e3d5b7febf4333b09da32fff5256169ed"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/index.pkl": {
+      "size": 302276,
+      "mtime": 1751952861.1532235,
+      "hash": "aed7ad7eb2c39c562cafeb7b4337c550478a15a330f0f4d90be4040ff4526f49"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/HK Exchange 2025 - Registration Forms-1.pdf": {
+      "size": 324127,
+      "mtime": 1751638817.6629324,
+      "hash": "ad69027bad34d046cba9c78773eeee816a2c165811ed585a291434c8a4a9e56f"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/.localized": {
+      "size": 0,
+      "mtime": 1608201855.938902,
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/Blank diagram - Page 1.png": {
+      "size": 140544,
+      "mtime": 1751695072.0308454,
+      "hash": "db517569ea5e0caddf209f613c4bffb97c9f6c33d548ac02b872fc708603aca5"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/Offer Documents_encrypted_.pdf": {
+      "size": 468642,
+      "mtime": 1751433089.2682953,
+      "hash": "7a28d1fc1673ef2cbfe5acbb6799854aedbadfee06d6c8ddc10d0a6f05f6a992"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/desktop.ini": {
+      "size": 282,
+      "mtime": 1611124465.8899128,
+      "hash": "b029393ea7b7cf644fb1c9f984f57c1980077562ee2e15d0ffd049c4c48098d3"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/SG CAT2 Template.xlsx": {
+      "size": 158537,
+      "mtime": 1751598391.936156,
+      "hash": "7d24733211b0bba3bd313136f5dfbf840eaa208e4b2a40d0c882a005aaa1c975"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/WhatsApp Image 2025-07-04 at 7.25.05 AM.jpeg": {
+      "size": 69326,
+      "mtime": 1751638225.2963657,
+      "hash": "295e7b8b812a0978062611aa6d21192175543e9bb3cae75de3a4640f4743b1c8"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/HK Exchange 2025 - Registration Forms.pdf": {
+      "size": 110269,
+      "mtime": 1751638648.6167364,
+      "hash": "897da069f368ff6708f1aa12951fdbcd06f5bd5dbf9a22cccd1f71bef1b46c93"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/ChatGPT Image Jul 8, 2025, 10_58_22 AM.png": {
+      "size": 1061538,
+      "mtime": 1751943502.9993317,
+      "hash": "00fecfdb192f599d94a67c4f7c60f6f54fff3a987ae0831c10087c0f99398bbd"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/Rubrik-Radhakrishnan .pdf": {
+      "size": 1885028,
+      "mtime": 1751878227.999075,
+      "hash": "10f1919c725bb152449ec8124425c85fbd735c1fb634dbd800afd1fa8ead6631"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/Keerthana_passport.jpeg": {
+      "size": 534096,
+      "mtime": 1751639034.0010974,
+      "hash": "41df56375290a2e3b890141ed146c88b3c1d8bc8d5b19be2d05600553e88e52a"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/Ramkumar Weds Harshini-11.pdf": {
+      "size": 6610418,
+      "mtime": 1751960059.109084,
+      "hash": "210e3bc32cdbc3798f84fe7e427ae3a1fd53169f183551ccb9059e0c31bd3bfe"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/INV-1748137672893-872.pdf": {
+      "size": 58039,
+      "mtime": 1751277192.156487,
+      "hash": "011abe8251d41d5fcf27d04f0a4b6d9937de8bc6f5bd91c4ef1e08c0c9904429"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/tickets/chennai_26Jul.pdf": {
+      "size": 395527,
+      "mtime": 1751767008.2532284,
+      "hash": "6ea4a2ef8f10490023537c382d4037ce57be74d31e0afcf6753e787c518da8a6"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/tickets/Bangalore_28Jul.pdf": {
+      "size": 250232,
+      "mtime": 1751767247.8877633,
+      "hash": "1ffda3d117be0eab3745ca8f2002ceb6efe7a92c130a1ef087a9401bd2d28eda"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/$RECYCLE.BIN/desktop.ini": {
+      "size": 129,
+      "mtime": 1608256480.786094,
+      "hash": "e1b9ce9b57957b1a0607a72a057d6b7a9b34ea60f3f8aa8f38a3af979bd23066"
+    },
+    "/Users/radhakrishnan.venkat/Downloads/.ipynb_checkpoints/Untitled-checkpoint.ipynb": {
+      "size": 72,
+      "mtime": 1624787916.785097,
+      "hash": "8017d2b5e7b60f087f9f6249bfe02d7a6e230b4dad7cbb8e3048001f5c9c90aa"
     }
   },
   "gdrive_files": {},
-  "last_updated": "2025-07-08T22:42:07.135182"
+  "last_updated": "2025-07-09T06:40:16.495334"
 }

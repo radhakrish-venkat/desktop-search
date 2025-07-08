@@ -39,6 +39,8 @@ SUPPORTED_MIME_TYPES = {
     'application/msword': '.doc',
     'application/vnd.ms-excel': '.xls',
     'application/vnd.ms-powerpoint': '.ppt',
+    'text/csv': '.csv',
+    'application/csv': '.csv',
 }
 
 try:
@@ -343,6 +345,96 @@ def get_text_from_pptx(filepath: str) -> str:
         logger.error(f"Error reading PPTX file {filepath}: {e}")
         return ""
 
+def get_text_from_csv(filepath: str) -> str:
+    """
+    Extracts text from a CSV file.
+    
+    Args:
+        filepath: Path to the CSV file
+        
+    Returns:
+        Extracted text as string
+    """
+    if not _check_file_size(filepath):
+        logger.warning(f"CSV file too large: {filepath}")
+        return ""
+        
+    text = ""
+    try:
+        import csv
+        
+        # Try different encodings
+        encodings = ['utf-8', 'latin-1', 'cp1252']
+        for encoding in encodings:
+            try:
+                with open(filepath, 'r', encoding=encoding, newline='') as f:
+                    reader = csv.reader(f)
+                    for row_num, row in enumerate(reader, 1):
+                        if row:  # Skip empty rows
+                            text += f"Row {row_num}: {' | '.join(str(cell) for cell in row)}\n"
+                break  # If successful, break out of encoding loop
+            except UnicodeDecodeError:
+                continue
+        else:
+            logger.error(f"Could not decode CSV file: {filepath}")
+            return ""
+            
+        return text.strip()
+    except Exception as e:
+        logger.error(f"Error reading CSV file {filepath}: {e}")
+        return ""
+
+def get_text_from_doc(filepath: str) -> str:
+    """
+    Extracts text from a legacy Word document (.doc).
+    
+    Args:
+        filepath: Path to the DOC file
+        
+    Returns:
+        Extracted text as string
+    """
+    if not _check_file_size(filepath):
+        logger.warning(f"DOC file too large: {filepath}")
+        return ""
+        
+    text = ""
+    try:
+        # Try using python-docx2txt for .doc files
+        try:
+            import docx2txt
+            text = docx2txt.process(filepath)
+            return text.strip()
+        except ImportError:
+            logger.warning("docx2txt not available for .doc files, trying alternative method")
+        
+        # Alternative: Try using antiword if available
+        try:
+            import subprocess
+            result = subprocess.run(['antiword', filepath], capture_output=True, text=True, timeout=30)
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except (ImportError, FileNotFoundError, subprocess.TimeoutExpired):
+            logger.warning("antiword not available for .doc files")
+        
+        # Fallback: Try to extract as binary and look for text patterns
+        try:
+            with open(filepath, 'rb') as f:
+                content = f.read()
+                # Look for text patterns in binary content
+                text_patterns = re.findall(rb'[\x20-\x7E]{4,}', content)
+                text = ' '.join(pattern.decode('utf-8', errors='ignore') for pattern in text_patterns)
+                return text.strip()
+        except Exception:
+            pass
+            
+        logger.warning(f"Could not extract text from DOC file: {filepath}")
+        return ""
+        
+    except Exception as e:
+        logger.error(f"Error reading DOC file {filepath}: {e}")
+        return ""
+
 def get_text_from_file(filepath: str) -> Tuple[Optional[str], str]:
     """
     Dispatches to the correct text extraction function based on file extension.
@@ -378,6 +470,10 @@ def get_text_from_file(filepath: str) -> Tuple[Optional[str], str]:
         content = get_text_from_xlsx(filepath)
     elif ext == '.pptx':
         content = get_text_from_pptx(filepath)
+    elif ext == '.csv':
+        content = get_text_from_csv(filepath)
+    elif ext == '.doc':
+        content = get_text_from_doc(filepath)
     else:
         logger.warning(f"Unsupported file extension: {ext}")
         return None, ext

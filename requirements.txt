@@ -4,6 +4,7 @@ pypdf>=3.0.0
 python-docx>=0.8.11
 openpyxl>=3.0.0
 python-pptx>=0.6.21
+docx2txt>=0.8
 
 # Semantic search dependencies
 chromadb>=0.4.0
@@ -19,6 +20,12 @@ google-api-python-client>=2.0.0
 cryptography>=3.4.0
 keyring>=23.0.0
 python-magic>=0.4.24
+
+# FastAPI and web dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+pydantic>=2.0.0
 
 # Development and testing
 pytest>=7.0.0
