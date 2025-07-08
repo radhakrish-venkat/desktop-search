@@ -9,7 +9,7 @@ from pkg.indexer.semantic import SemanticIndexer
 from pkg.indexer.google_drive import build_google_drive_index, merge_indices, search_google_drive
 from pkg.utils.google_drive import setup_google_drive_credentials, GOOGLE_DRIVE_AVAILABLE
 from pkg.indexer.semantic_hybrid import HybridSemanticIndexer
-from pkg.indexer.incremental import incremental_index, incremental_semantic_index
+from pkg.indexer.incremental import incremental_index, incremental_semantic_index, smart_index, smart_semantic_index
 
 # --- Main Click Group ---
 @click.group()
@@ -29,23 +29,45 @@ def get_default_index_path(directory: str) -> str:
 @click.argument('directory', type=click.Path(exists=True, file_okay=False, dir_okay=True, resolve_path=True))
 @click.option('--save', '-s', 'save_path', type=click.Path(dir_okay=False), help='Save index to specified file (overrides default)')
 @click.option('--no-save', is_flag=True, help='Do not save index to file (only keep in memory)')
-def index(directory: str, save_path: Optional[str], no_save: bool):
+@click.option('--force-full', is_flag=True, help='Force full indexing even if incremental is possible')
+def index(directory: str, save_path: Optional[str], no_save: bool, force_full: bool):
     """
     Scans the specified DIRECTORY, extracts text from supported documents,
     and builds a search index.
     
+    Smart indexing: Automatically detects if an index already exists and uses
+    incremental indexing for faster updates. Use --force-full to always rebuild.
+    
     By default, saves the index to DIRECTORY/index.pkl
     """
-    click.echo(f"Starting indexing of directory: {directory}")
+    click.echo(f"Starting smart indexing of directory: {directory}")
+    
+    if force_full:
+        click.echo("Force full indexing enabled - rebuilding entire index")
     
     try:
-        index_data = build_index(directory)
+        # Use smart indexing that automatically chooses incremental or full
+        index_data = smart_index(
+            directory_path=directory,
+            index_path=save_path if save_path else get_default_index_path(directory),
+            force_full=force_full
+        )
+        
         if not index_data:
             click.echo("Error: Failed to build index.", err=True)
             raise click.Abort()
         
-        doc_count = len(index_data['document_store'])
-        click.echo(f"Indexing complete. Indexed {doc_count} documents.")
+        stats = index_data.get('stats', {})
+        indexing_type = stats.get('indexing_type', 'unknown')
+        
+        click.echo(f"Indexing complete ({indexing_type}).")
+        click.echo(f"Total files: {stats.get('total_files', 0)}")
+        
+        if indexing_type == 'incremental':
+            click.echo(f"New files: {stats.get('new_files', 0)}")
+            click.echo(f"Modified files: {stats.get('modified_files', 0)}")
+            click.echo(f"Deleted files: {stats.get('deleted_files', 0)}")
+            click.echo(f"Skipped files: {stats.get('skipped_files', 0)}")
         
         # Determine where to save the index
         if not no_save:
@@ -56,10 +78,8 @@ def index(directory: str, save_path: Optional[str], no_save: bool):
                 # Use default path in .index folder
                 target_path = get_default_index_path(directory)
             
-            if save_index(index_data, target_path):
-                click.echo(f"Index saved to: {target_path}")
-            else:
-                click.echo("Warning: Failed to save index.", err=True)
+            # Note: smart_index already saves the index, so we just report the location
+            click.echo(f"Index saved to: {target_path}")
         else:
             click.echo("Index not saved to file (--no-save flag used)")
         
@@ -137,31 +157,52 @@ def search(query: str, load_path: Optional[str], directory: Optional[str], limit
 @click.argument('directory', type=click.Path(exists=True, file_okay=False, dir_okay=True, resolve_path=True))
 @click.option('--db-path', '-p', default='./chroma_db', help='ChromaDB persistence directory')
 @click.option('--model', '-m', default='all-MiniLM-L6-v2', help='Sentence transformer model name')
-def semantic_index(directory: str, db_path: str, model: str):
+@click.option('--force-full', is_flag=True, help='Force full indexing even if incremental is possible')
+def semantic_index(directory: str, db_path: str, model: str, force_full: bool):
     """
     Builds a semantic search index using ChromaDB and sentence-transformers.
+    
+    Smart indexing: Automatically detects if a semantic index already exists and uses
+    incremental indexing for faster updates. Use --force-full to always rebuild.
     
     This creates embeddings for document chunks and stores them in a vector database
     for semantic similarity search.
     """
-    click.echo(f"Starting semantic indexing of directory: {directory}")
+    click.echo(f"Starting smart semantic indexing of directory: {directory}")
     click.echo(f"Using model: {model}")
     click.echo(f"ChromaDB path: {db_path}")
     
+    if force_full:
+        click.echo("Force full indexing enabled - rebuilding entire semantic index")
+    
     try:
-        indexer = SemanticIndexer(persist_directory=db_path, model_name=model)
-        stats = indexer.build_semantic_index(directory)
+        # Use smart semantic indexing that automatically chooses incremental or full
+        stats = smart_semantic_index(
+            directory_path=directory,
+            persist_directory=db_path,
+            model_name=model,
+            force_full=force_full
+        )
         
         if not stats:
             click.echo("Error: Failed to build semantic index.", err=True)
             raise click.Abort()
         
-        click.echo(f"Semantic indexing complete!")
-        click.echo(f"Files processed: {stats['stats']['total_files']}")
-        click.echo(f"Chunks created: {stats['stats']['total_chunks']}")
-        click.echo(f"Files skipped: {stats['stats']['skipped_files']}")
+        stats_data = stats.get('stats', {})
+        indexing_type = stats_data.get('indexing_type', 'unknown')
+        
+        click.echo(f"Semantic indexing complete ({indexing_type})!")
+        click.echo(f"Files processed: {stats_data.get('total_files', 0)}")
+        click.echo(f"Chunks created: {stats_data.get('total_chunks', 0)}")
+        click.echo(f"Files skipped: {stats_data.get('skipped_files', 0)}")
+        
+        if indexing_type == 'incremental':
+            click.echo(f"New files: {stats_data.get('new_files', 0)}")
+            click.echo(f"Modified files: {stats_data.get('modified_files', 0)}")
+            click.echo(f"Deleted files: {stats_data.get('deleted_files', 0)}")
         
         # Store indexer in context for immediate search
+        indexer = SemanticIndexer(persist_directory=db_path, model_name=model)
         click.get_current_context().obj = {'semantic_indexer': indexer}
         
     except Exception as e:
@@ -342,9 +383,13 @@ def gdrive_index(folder_id: Optional[str], query: Optional[str], save_path: Opti
 @click.option('--gdrive-query', '-q', help='Additional query to filter Google Drive files')
 @click.option('--save', '-s', 'save_path', type=click.Path(dir_okay=False), help='Save index to specified file')
 @click.option('--no-save', is_flag=True, help='Do not save index to file (only keep in memory)')
-def hybrid_index(directory: str, gdrive_folder_id: Optional[str], gdrive_query: Optional[str], save_path: Optional[str], no_save: bool):
+@click.option('--force-full', is_flag=True, help='Force full indexing even if incremental is possible')
+def hybrid_index(directory: str, gdrive_folder_id: Optional[str], gdrive_query: Optional[str], save_path: Optional[str], no_save: bool, force_full: bool):
     """
     Builds a hybrid index combining local files and Google Drive files.
+    
+    Smart indexing: Automatically detects if an index already exists and uses
+    incremental indexing for faster updates. Use --force-full to always rebuild.
     
     This command indexes both local files from DIRECTORY and Google Drive files,
     then merges them into a single searchable index.
@@ -354,58 +399,55 @@ def hybrid_index(directory: str, gdrive_folder_id: Optional[str], gdrive_query: 
         click.echo("Please install: google-auth, google-auth-oauthlib, google-auth-httplib2, google-api-python-client", err=True)
         raise click.Abort()
     
-    click.echo(f"Starting hybrid indexing of local directory: {directory}")
+    click.echo(f"Starting smart hybrid indexing of local directory: {directory}")
     if gdrive_folder_id:
         click.echo(f"Including Google Drive folder: {gdrive_folder_id}")
+    if gdrive_query:
+        click.echo(f"Google Drive query filter: {gdrive_query}")
+    
+    if force_full:
+        click.echo("Force full indexing enabled - rebuilding entire hybrid index")
     
     try:
-        # Build local index
-        click.echo("Building local file index...")
-        local_index = build_index(directory)
-        if not local_index:
-            click.echo("Error: Failed to build local index.", err=True)
+        # Use smart indexing that automatically chooses incremental or full
+        stats = smart_index(
+            directory_path=directory,
+            gdrive_folder_id=gdrive_folder_id,
+            gdrive_query=gdrive_query,
+            index_path=save_path if save_path else get_default_index_path(directory),
+            force_full=force_full
+        )
+        
+        if not stats:
+            click.echo("Error: Failed to build hybrid index.", err=True)
             raise click.Abort()
         
-        # Build Google Drive index
-        gdrive_index = None
-        if gdrive_folder_id or gdrive_query:
-            click.echo("Building Google Drive index...")
-            gdrive_index = build_google_drive_index(folder_id=gdrive_folder_id, query=gdrive_query)
-            if not gdrive_index:
-                click.echo("Warning: Failed to build Google Drive index, continuing with local index only.", err=True)
+        stats_data = stats.get('stats', {})
+        indexing_type = stats_data.get('indexing_type', 'unknown')
         
-        # Merge indices
-        if gdrive_index:
-            click.echo("Merging local and Google Drive indices...")
-            merged_index = merge_indices(local_index, gdrive_index)
-        else:
-            merged_index = local_index
+        click.echo(f"Hybrid indexing complete ({indexing_type})!")
+        click.echo(f"Total documents: {stats_data.get('total_files', 0)}")
         
-        # Display stats
-        stats = merged_index['stats']
-        click.echo(f"Hybrid indexing complete!")
-        click.echo(f"Local files: {stats.get('local_files', stats.get('total_files', 0))}")
-        if gdrive_index:
-            click.echo(f"Google Drive files: {stats.get('gdrive_files', 0)}")
-        click.echo(f"Total documents: {stats['total_documents']}")
+        if indexing_type == 'incremental':
+            click.echo(f"New files: {stats_data.get('new_files', 0)}")
+            click.echo(f"Modified files: {stats_data.get('modified_files', 0)}")
+            click.echo(f"Deleted files: {stats_data.get('deleted_files', 0)}")
+            click.echo(f"Skipped files: {stats_data.get('skipped_files', 0)}")
         
         # Determine where to save the index
         if not no_save:
             if save_path:
                 target_path = save_path
             else:
-                # Use default path
                 target_path = get_default_index_path(directory)
             
-            if save_index(merged_index, target_path):
-                click.echo(f"Index saved to: {target_path}")
-            else:
-                click.echo("Warning: Failed to save index.", err=True)
+            # Note: smart_index already saves the index, so we just report the location
+            click.echo(f"Index saved to: {target_path}")
         else:
             click.echo("Index not saved to file (--no-save flag used)")
         
         # Store in context for immediate search
-        click.get_current_context().obj = merged_index
+        click.get_current_context().obj = stats
         
     except click.Abort:
         raise
@@ -458,10 +500,13 @@ def gdrive_search(query: str, folder_id: Optional[str], limit: int):
 @click.option('--gdrive-query', '-q', help='Additional query to filter Google Drive files')
 @click.option('--db-path', '-p', default='./chroma_db', help='ChromaDB persistence directory')
 @click.option('--model', '-m', default='all-MiniLM-L6-v2', help='Sentence transformer model name')
-@click.option('--no-clear', is_flag=True, help='Do not clear existing index before building')
-def hybrid_semantic_index(directory: str, gdrive_folder_id: Optional[str], gdrive_query: Optional[str], db_path: str, model: str, no_clear: bool):
+@click.option('--force-full', is_flag=True, help='Force full indexing even if incremental is possible')
+def hybrid_semantic_index(directory: str, gdrive_folder_id: Optional[str], gdrive_query: Optional[str], db_path: str, model: str, force_full: bool):
     """
     Builds a hybrid semantic search index combining local files and Google Drive files.
+    
+    Smart indexing: Automatically detects if a semantic index already exists and uses
+    incremental indexing for faster updates. Use --force-full to always rebuild.
     
     This creates embeddings for document chunks from both local and Google Drive files
     and stores them in a vector database for semantic similarity search.
@@ -471,31 +516,47 @@ def hybrid_semantic_index(directory: str, gdrive_folder_id: Optional[str], gdriv
         click.echo("Please install: google-auth, google-auth-oauthlib, google-auth-httplib2, google-api-python-client", err=True)
         raise click.Abort()
     
-    click.echo(f"Starting hybrid semantic indexing of local directory: {directory}")
+    click.echo(f"Starting smart hybrid semantic indexing of local directory: {directory}")
     if gdrive_folder_id:
         click.echo(f"Including Google Drive folder: {gdrive_folder_id}")
+    if gdrive_query:
+        click.echo(f"Google Drive query filter: {gdrive_query}")
     click.echo(f"Using model: {model}")
     click.echo(f"ChromaDB path: {db_path}")
     
+    if force_full:
+        click.echo("Force full indexing enabled - rebuilding entire semantic index")
+    
     try:
-        indexer = HybridSemanticIndexer(persist_directory=db_path, model_name=model)
-        stats = indexer.build_hybrid_semantic_index(
-            local_directory=directory,
+        # Use smart semantic indexing that automatically chooses incremental or full
+        stats = smart_semantic_index(
+            directory_path=directory,
             gdrive_folder_id=gdrive_folder_id,
             gdrive_query=gdrive_query,
-            clear_existing=not no_clear
+            persist_directory=db_path,
+            model_name=model,
+            force_full=force_full
         )
         
         if not stats:
             click.echo("Error: Failed to build hybrid semantic index.", err=True)
             raise click.Abort()
         
-        click.echo(f"Hybrid semantic indexing complete!")
-        click.echo(f"Total files processed: {stats['stats']['total_files']}")
-        click.echo(f"Total chunks created: {stats['stats']['total_chunks']}")
-        click.echo(f"Files skipped: {stats['stats']['skipped_files']}")
+        stats_data = stats.get('stats', {})
+        indexing_type = stats_data.get('indexing_type', 'unknown')
+        
+        click.echo(f"Hybrid semantic indexing complete ({indexing_type})!")
+        click.echo(f"Total files processed: {stats_data.get('total_files', 0)}")
+        click.echo(f"Total chunks created: {stats_data.get('total_chunks', 0)}")
+        click.echo(f"Files skipped: {stats_data.get('skipped_files', 0)}")
+        
+        if indexing_type == 'incremental':
+            click.echo(f"New files: {stats_data.get('new_files', 0)}")
+            click.echo(f"Modified files: {stats_data.get('modified_files', 0)}")
+            click.echo(f"Deleted files: {stats_data.get('deleted_files', 0)}")
         
         # Store indexer in context for immediate search
+        indexer = HybridSemanticIndexer(persist_directory=db_path, model_name=model)
         click.get_current_context().obj = {'hybrid_semantic_indexer': indexer}
         
     except Exception as e:

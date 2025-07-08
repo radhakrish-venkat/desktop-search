@@ -1,0 +1,26 @@
+{
+  "local_files": {
+    "/Users/radhakrishnan.venkat/Documents/vscode/desktop-search/test_docs/doc1.txt": {
+      "size": 50,
+      "mtime": 1751952709.014129,
+      "hash": "8556e0737fe2e848f5f6d4f0fecc0acec7de018566b9618e79115ca7bb2dff56"
+    },
+    "/Users/radhakrishnan.venkat/Documents/vscode/desktop-search/test_docs/doc3.txt": {
+      "size": 61,
+      "mtime": 1751952709.0182822,
+      "hash": "c8c6e4e2a9eabd93f86898adedd463c1628a9b607191bbb70fd1ffbc81cf66bd"
+    },
+    "/Users/radhakrishnan.venkat/Documents/vscode/desktop-search/test_docs/doc2.txt": {
+      "size": 66,
+      "mtime": 1751952709.0175447,
+      "hash": "022cf1a6e5f2b86b1684b0c6f5726306c8ab1d1dabb5b9e2b66cb985976f5646"
+    },
+    "/Users/radhakrishnan.venkat/Documents/vscode/desktop-search/test_docs/index.pkl": {
+      "size": 1051,
+      "mtime": 1751985598.9948025,
+      "hash": "4058f6dc97bfab06b17c03dc7f514b7b3b63029e0e48304f3e5ac7c87f2841ef"
+    }
+  },
+  "gdrive_files": {},
+  "last_updated": "2025-07-08T22:42:07.135182"
+}

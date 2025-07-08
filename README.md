@@ -30,6 +30,7 @@ A fast and efficient local document search tool that indexes and searches throug
 - **Cross-Platform Search**: Search across local files and Google Drive simultaneously
 - **Source Transparency**: Clear indication of result sources (local vs cloud)
 - **Unified Results**: Consistent ranking and display across all file sources
+- **Smart Indexing**: Automatically detects existing indexes and uses incremental updates
 - **Incremental Indexing**: Add new files without rebuilding entire index
 - **Smart Change Detection**: Tracks file modifications using metadata and hashes
 
@@ -75,6 +76,7 @@ A fast and efficient local document search tool that indexes and searches throug
 ### **📊 Enterprise Ready**
 - **Multiple File Formats**: Support for all major document types
 - **Configurable Models**: Choose the best embedding model for your use case
+- **Smart Indexing**: Automatically chooses incremental or full indexing based on existing state
 - **Incremental Updates**: Add new files without rebuilding entire indexes
 - **Smart Change Detection**: Tracks file modifications using metadata and hashes
 - **Comprehensive Logging**: Detailed logging for debugging and monitoring
@@ -111,11 +113,12 @@ The following packages are required:
 
 ### Basic Commands
 
-**Index a directory:**
+**Index a directory (smart indexing):**
 ```bash
 python main.py index /path/to/your/documents
 ```
-This creates an `index.pkl` file in the indexed directory.
+This automatically detects if an index already exists and uses incremental indexing for faster updates.
+Creates an `index.pkl` file in the indexed directory.
 
 **Search for content:**
 ```bash
@@ -127,6 +130,11 @@ python main.py search "your search query"
 **Index and save to custom location:**
 ```bash
 python main.py index /path/to/documents --save my_index.pkl
+```
+
+**Force full indexing (rebuild everything):**
+```bash
+python main.py index /path/to/documents --force-full
 ```
 
 **Search with saved index:**
@@ -158,9 +166,14 @@ python main.py search --help
 
 ### Semantic Search Commands
 
-**Build semantic index:**
+**Build semantic index (smart indexing):**
 ```bash
 python main.py semantic-index /path/to/your/documents
+```
+
+**Force full semantic indexing:**
+```bash
+python main.py semantic-index /path/to/your/documents --force-full
 ```
 
 **Semantic search:**
@@ -406,19 +419,22 @@ Searching Google Drive for: 'project proposal'
    Snippet: The budget proposal includes detailed cost breakdowns for the upcoming fiscal year...
 ```
 
-**Hybrid indexing and search:**
+**Smart hybrid indexing and search:**
 ```bash
-# Index both local and Google Drive files
+# Index both local and Google Drive files (smart indexing)
 $ python main.py hybrid-index ~/Documents --gdrive-folder-id "1ABC123DEF456"
-Starting hybrid indexing of local directory: /Users/username/Documents
+Starting smart hybrid indexing of local directory: /Users/username/Documents
 Including Google Drive folder: 1ABC123DEF456
-Building local file index...
-Building Google Drive index...
-Merging local and Google Drive indices...
-Hybrid indexing complete!
-Local files: 245
-Google Drive files: 78
-Total documents: 323
+Existing index detected - using incremental indexing
+Local changes detected: 2 new, 1 modified, 0 deleted
+Google Drive changes detected: 3 new, 0 modified, 1 deleted
+
+--- Hybrid Indexing Results (incremental) ---
+Total documents: 325
+New files: 5
+Modified files: 1
+Deleted files: 1
+Skipped files: 319
 Index saved to: /Users/username/Documents/index.pkl
 
 # Search the hybrid index
@@ -432,20 +448,25 @@ Searching for: 'quarterly report'
    Snippet: This quarterly report covers the performance metrics for the third quarter...
 ```
 
-**Hybrid semantic indexing and search:**
+**Smart hybrid semantic indexing and search:**
 ```bash
-# Build semantic index for both local and Google Drive files
+# Build semantic index for both local and Google Drive files (smart indexing)
 $ python main.py hybrid-semantic-index ~/Documents --gdrive-folder-id "1ABC123DEF456"
-Starting hybrid semantic indexing of local directory: /Users/username/Documents
+Starting smart hybrid semantic indexing of local directory: /Users/username/Documents
 Including Google Drive folder: 1ABC123DEF456
 Using model: all-MiniLM-L6-v2
 ChromaDB path: ./chroma_db
-Indexing local files in: /Users/username/Documents
-Indexing Google Drive files (folder_id: 1ABC123DEF456)
-Hybrid semantic indexing complete!
-Total files processed: 323
-Total chunks created: 1500
-Files skipped: 12
+Existing semantic index detected - using incremental indexing
+Local changes detected: 1 new, 0 modified, 0 deleted
+Google Drive changes detected: 2 new, 1 modified, 0 deleted
+
+--- Hybrid Semantic Indexing Results (incremental) ---
+Total files processed: 325
+Total chunks created: 1520
+New files: 3
+Modified files: 1
+Deleted files: 0
+Skipped files: 321
 
 # Semantic search across both sources
 $ python main.py hybrid-semantic-search "artificial intelligence research"
@@ -562,6 +583,43 @@ New files processed: 3
 Modified files processed: 1
 Deleted files removed: 0
 Files skipped (no changes): 1201
+```
+
+### Smart Indexing
+
+**Automatic Detection:**
+- **Index Detection**: Automatically detects if an index already exists for the given path
+- **Smart Choice**: Uses incremental indexing when possible, full indexing when needed
+- **Transparent Operation**: No manual intervention required - just works
+- **Force Override**: Use `--force-full` flag to always rebuild from scratch
+
+**Detection Methods:**
+- **Metadata Files**: Checks for existing `index_metadata.json` files
+- **Index Files**: Looks for existing `index.pkl` files in the directory
+- **ChromaDB Collections**: Detects existing semantic indexes
+- **Directory Tracking**: Checks if directory is already tracked in metadata
+
+**Example Behavior:**
+```bash
+# First run - full indexing
+$ python main.py index ~/Documents
+Starting smart indexing of directory: /Users/username/Documents
+No existing index found - performing full indexing
+Indexing complete (full).
+Total files: 1000
+Index saved to: /Users/username/Documents/index.pkl
+
+# Second run - incremental indexing
+$ python main.py index ~/Documents
+Starting smart indexing of directory: /Users/username/Documents
+Existing index detected - using incremental indexing
+Local changes detected: 5 new, 2 modified, 1 deleted
+Indexing complete (incremental).
+Total files: 1004
+New files: 5
+Modified files: 2
+Deleted files: 1
+Skipped files: 992
 ```
 
 ### How Incremental Indexing Works

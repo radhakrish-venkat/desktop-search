@@ -84,6 +84,273 @@ class IncrementalIndexer:
             'mime_type': file_info.get('mimeType')
         }
     
+    def has_existing_index(self, directory_path: Optional[str] = None, 
+                          gdrive_folder_id: Optional[str] = None,
+                          gdrive_query: Optional[str] = None,
+                          index_path: Optional[str] = None) -> bool:
+        """
+        Check if there's an existing index for the given paths.
+        
+        Args:
+            directory_path: Local directory path to check
+            gdrive_folder_id: Google Drive folder ID to check
+            gdrive_query: Google Drive query to check
+            index_path: Specific index file path to check
+            
+        Returns:
+            True if an existing index is found, False otherwise
+        """
+        # Check if index file exists (this is the primary indicator)
+        has_index_file = False
+        if index_path:
+            has_index_file = os.path.exists(index_path)
+        elif directory_path:
+            # Check for default index file
+            default_index_path = os.path.join(directory_path, 'index.pkl')
+            has_index_file = os.path.exists(default_index_path)
+        
+        # Only consider metadata as a valid indicator if there's also an index file
+        # This prevents the case where metadata exists but index file is missing
+        if has_index_file:
+            # Check if metadata exists and has entries
+            has_metadata = bool(self.metadata.get('local_files') or self.metadata.get('gdrive_files'))
+            
+            # Check if directory is already tracked in metadata
+            directory_tracked = False
+            if directory_path and has_metadata:
+                # Check if any files from this directory are in metadata
+                for filepath in self.metadata.get('local_files', {}):
+                    if filepath.startswith(directory_path):
+                        directory_tracked = True
+                        break
+            
+            # Check if Google Drive folder is tracked
+            gdrive_tracked = False
+            if gdrive_folder_id and has_metadata:
+                gdrive_tracked = bool(self.metadata.get('gdrive_files'))
+            
+            return has_metadata or directory_tracked or gdrive_tracked
+        
+        return False
+    
+    def should_use_incremental(self, directory_path: Optional[str] = None,
+                              gdrive_folder_id: Optional[str] = None,
+                              gdrive_query: Optional[str] = None,
+                              index_path: Optional[str] = None,
+                              force_full: bool = False) -> bool:
+        """
+        Determine whether to use incremental indexing or full indexing.
+        
+        Args:
+            directory_path: Local directory path
+            gdrive_folder_id: Google Drive folder ID
+            gdrive_query: Google Drive query
+            index_path: Specific index file path
+            force_full: Force full indexing regardless of existing index
+            
+        Returns:
+            True if incremental indexing should be used, False for full indexing
+        """
+        if force_full:
+            return False
+        
+        return self.has_existing_index(directory_path, gdrive_folder_id, gdrive_query, index_path)
+    
+    def smart_index(self, 
+                   directory_path: Optional[str] = None,
+                   gdrive_folder_id: Optional[str] = None,
+                   gdrive_query: Optional[str] = None,
+                   index_path: Optional[str] = None,
+                   force_full: bool = False) -> Optional[Dict[str, Any]]:
+        """
+        Smart indexing that automatically chooses between incremental and full indexing.
+        
+        Args:
+            directory_path: Path to local directory to index
+            gdrive_folder_id: Google Drive folder ID to index
+            gdrive_query: Additional query to filter Google Drive files
+            index_path: Path to save the index (uses default if None)
+            force_full: Force full indexing regardless of existing index
+            
+        Returns:
+            Dictionary with indexing statistics
+        """
+        use_incremental = self.should_use_incremental(
+            directory_path, gdrive_folder_id, gdrive_query, index_path, force_full
+        )
+        
+        if use_incremental:
+            logger.info("Existing index detected - using incremental indexing")
+            return self.incremental_index(directory_path, gdrive_folder_id, gdrive_query, index_path)
+        else:
+            logger.info("No existing index found - performing full indexing")
+            return self._full_index(directory_path, gdrive_folder_id, gdrive_query, index_path)
+    
+    def _full_index(self, 
+                   directory_path: Optional[str] = None,
+                   gdrive_folder_id: Optional[str] = None,
+                   gdrive_query: Optional[str] = None,
+                   index_path: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Perform full indexing (non-incremental) of local and Google Drive files.
+        
+        Args:
+            directory_path: Path to local directory to index
+            gdrive_folder_id: Google Drive folder ID to index
+            gdrive_query: Additional query to filter Google Drive files
+            index_path: Path to save the index (uses default if None)
+            
+        Returns:
+            Dictionary with indexing statistics
+        """
+        logger.info("Starting full indexing")
+        
+        new_index = None
+        
+        # Index local files
+        if directory_path:
+            logger.info(f"Indexing local directory: {directory_path}")
+            local_index = build_index(directory_path)
+            if local_index:
+                new_index = local_index
+        
+        # Index Google Drive files
+        if gdrive_folder_id or gdrive_query:
+            logger.info(f"Indexing Google Drive files (folder_id: {gdrive_folder_id or 'root'})")
+            gdrive_index = build_google_drive_index(folder_id=gdrive_folder_id, query=gdrive_query)
+            if gdrive_index:
+                if new_index:
+                    new_index = merge_indices(new_index, gdrive_index)
+                else:
+                    new_index = gdrive_index
+        
+        # Update metadata for all processed files
+        if directory_path:
+            self._update_local_metadata(directory_path)
+        
+        if gdrive_folder_id or gdrive_query:
+            self._update_gdrive_metadata(gdrive_folder_id, gdrive_query)
+        
+        self._save_metadata()
+        
+        # Save final index
+        if new_index and index_path:
+            save_index(new_index, index_path)
+        
+        total_files = new_index.get('stats', {}).get('total_files', 0) if new_index else 0
+        logger.info(f"Full indexing complete: {total_files} files processed")
+        
+        return {
+            'stats': {
+                'total_files': total_files,
+                'new_files': total_files,
+                'modified_files': 0,
+                'deleted_files': 0,
+                'skipped_files': 0,
+                'indexing_type': 'full'
+            }
+        }
+    
+    def _update_local_metadata(self, directory_path: str):
+        """Update metadata for all files in a local directory."""
+        for root, dirs, files in os.walk(directory_path):
+            for filename in files:
+                filepath = os.path.join(root, filename)
+                self.metadata['local_files'][filepath] = self._get_file_metadata(filepath)
+    
+    def _update_gdrive_metadata(self, folder_id: Optional[str] = None, query: Optional[str] = None):
+        """Update metadata for all files in Google Drive."""
+        if not GOOGLE_DRIVE_AVAILABLE:
+            return
+        
+        try:
+            client = GoogleDriveClient()
+            files = client.list_files(folder_id=folder_id, query=query)
+            
+            for file_info in files:
+                file_id = file_info.get('id')
+                if file_id:
+                    self.metadata['gdrive_files'][file_id] = self._get_gdrive_file_metadata(file_info)
+        except Exception as e:
+            logger.error(f"Error updating Google Drive metadata: {e}")
+    
+    def smart_semantic_index(self,
+                           directory_path: Optional[str] = None,
+                           gdrive_folder_id: Optional[str] = None,
+                           gdrive_query: Optional[str] = None,
+                           persist_directory: str = "./chroma_db",
+                           model_name: str = "all-MiniLM-L6-v2",
+                           force_full: bool = False) -> Optional[Dict[str, Any]]:
+        """
+        Smart semantic indexing that automatically chooses between incremental and full indexing.
+        
+        Args:
+            directory_path: Path to local directory to index
+            gdrive_folder_id: Google Drive folder ID to index
+            gdrive_query: Additional query to filter Google Drive files
+            persist_directory: ChromaDB persistence directory
+            model_name: Sentence transformer model name
+            force_full: Force full indexing regardless of existing index
+            
+        Returns:
+            Dictionary with indexing statistics
+        """
+        use_incremental = self.should_use_incremental(
+            directory_path, gdrive_folder_id, gdrive_query, None, force_full
+        )
+        
+        if use_incremental:
+            logger.info("Existing semantic index detected - using incremental indexing")
+            return self.incremental_semantic_index(directory_path, gdrive_folder_id, gdrive_query, persist_directory, model_name)
+        else:
+            logger.info("No existing semantic index found - performing full indexing")
+            return self._full_semantic_index(directory_path, gdrive_folder_id, gdrive_query, persist_directory, model_name)
+    
+    def _full_semantic_index(self,
+                           directory_path: Optional[str] = None,
+                           gdrive_folder_id: Optional[str] = None,
+                           gdrive_query: Optional[str] = None,
+                           persist_directory: str = "./chroma_db",
+                           model_name: str = "all-MiniLM-L6-v2") -> Optional[Dict[str, Any]]:
+        """
+        Perform full semantic indexing (non-incremental).
+        
+        Args:
+            directory_path: Path to local directory to index
+            gdrive_folder_id: Google Drive folder ID to index
+            gdrive_query: Additional query to filter Google Drive files
+            persist_directory: ChromaDB persistence directory
+            model_name: Sentence transformer model name
+            
+        Returns:
+            Dictionary with indexing statistics
+        """
+        logger.info("Starting full semantic indexing")
+        
+        # Use hybrid semantic indexer with clear_existing=True
+        indexer = HybridSemanticIndexer(persist_directory=persist_directory, model_name=model_name)
+        
+        stats = indexer.build_hybrid_semantic_index(
+            local_directory=directory_path,
+            gdrive_folder_id=gdrive_folder_id,
+            gdrive_query=gdrive_query,
+            clear_existing=True  # Clear existing for full indexing
+        )
+        
+        # Update metadata
+        if directory_path:
+            self._update_local_metadata(directory_path)
+        
+        if gdrive_folder_id or gdrive_query:
+            self._update_gdrive_metadata(gdrive_folder_id, gdrive_query)
+        
+        self._save_metadata()
+        
+        if stats:
+            stats['stats']['indexing_type'] = 'full'
+        
+        return stats
+    
     def _detect_local_changes(self, directory_path: str) -> Tuple[List[str], List[str], List[str]]:
         """
         Detect changes in local files.
@@ -210,7 +477,8 @@ class IncrementalIndexer:
                     'new_files': 0,
                     'modified_files': 0,
                     'deleted_files': 0,
-                    'skipped_files': 0
+                    'skipped_files': 0,
+                    'indexing_type': 'incremental'  # Always set this
                 }
             }
         
@@ -267,22 +535,50 @@ class IncrementalIndexer:
         
         self._save_metadata()
         
-        # Save final index
-        if final_index and index_path:
-            save_index(final_index, index_path)
-        
+        # Remove deleted files from index
+        if final_index:
+            # Remove from document_store
+            for filepath in local_deleted:
+                doc_ids_to_remove = [doc_id for doc_id, doc in final_index['document_store'].items() if doc['filepath'] == filepath]
+                for doc_id in doc_ids_to_remove:
+                    final_index['document_store'].pop(doc_id, None)
+                    # Remove from inverted_index
+                    for token in list(final_index['inverted_index'].keys()):
+                        final_index['inverted_index'][token].discard(doc_id)
+                        if not final_index['inverted_index'][token]:
+                            final_index['inverted_index'].pop(token)
+            # Do the same for deleted Google Drive files (by file_id)
+            for file_id in gdrive_deleted:
+                doc_ids_to_remove = [doc_id for doc_id, doc in final_index['document_store'].items() if doc.get('file_id') == file_id]
+                for doc_id in doc_ids_to_remove:
+                    final_index['document_store'].pop(doc_id, None)
+                    for token in list(final_index['inverted_index'].keys()):
+                        final_index['inverted_index'][token].discard(doc_id)
+                        if not final_index['inverted_index'][token]:
+                            final_index['inverted_index'].pop(token)
+            
+            # Recalculate stats after removing deleted files
+            final_index['stats']['total_files'] = len(final_index['document_store'])
+            final_index['stats']['total_documents'] = len(final_index['document_store'])
+            final_index['stats']['unique_tokens'] = len(final_index['inverted_index'])
+
         total_changes = len(local_new) + len(local_modified) + len(gdrive_new) + len(gdrive_modified)
         total_deleted = len(local_deleted) + len(gdrive_deleted)
         
         logger.info(f"Incremental indexing complete: {total_changes} files processed, {total_deleted} files removed")
         
+        # Save final index
+        if final_index and index_path:
+            save_index(final_index, index_path)
+        
         return {
             'stats': {
-                'total_files': final_index.get('stats', {}).get('total_files', 0) if final_index else 0,
+                'total_files': len(final_index['document_store']) if final_index else 0,
                 'new_files': len(local_new) + len(gdrive_new),
                 'modified_files': len(local_modified) + len(gdrive_modified),
                 'deleted_files': total_deleted,
-                'skipped_files': 0
+                'skipped_files': 0,
+                'indexing_type': 'incremental'  # Always set this
             }
         }
     
@@ -328,7 +624,8 @@ class IncrementalIndexer:
                     'new_files': 0,
                     'modified_files': 0,
                     'deleted_files': 0,
-                    'total_chunks': 0
+                    'total_chunks': 0,
+                    'indexing_type': 'incremental'  # Always set this
                 }
             }
         
@@ -374,6 +671,8 @@ class IncrementalIndexer:
         
         logger.info(f"Incremental semantic indexing complete: {total_changes} files processed, {total_deleted} files removed")
         
+        if stats:
+            stats['stats']['indexing_type'] = 'incremental'
         return stats
 
 
@@ -404,4 +703,44 @@ def incremental_semantic_index(directory_path: Optional[str] = None,
         gdrive_query=gdrive_query,
         persist_directory=persist_directory,
         model_name=model_name
+    )
+
+def smart_index(directory_path: Optional[str] = None,
+               gdrive_folder_id: Optional[str] = None,
+               gdrive_query: Optional[str] = None,
+               index_path: Optional[str] = None,
+               force_full: bool = False) -> Optional[Dict[str, Any]]:
+    """
+    Smart indexing that automatically chooses between incremental and full indexing.
+    
+    Automatically detects if an index already exists and uses incremental indexing if possible.
+    """
+    indexer = IncrementalIndexer()
+    return indexer.smart_index(
+        directory_path=directory_path,
+        gdrive_folder_id=gdrive_folder_id,
+        gdrive_query=gdrive_query,
+        index_path=index_path,
+        force_full=force_full
+    )
+
+def smart_semantic_index(directory_path: Optional[str] = None,
+                        gdrive_folder_id: Optional[str] = None,
+                        gdrive_query: Optional[str] = None,
+                        persist_directory: str = "./chroma_db",
+                        model_name: str = "all-MiniLM-L6-v2",
+                        force_full: bool = False) -> Optional[Dict[str, Any]]:
+    """
+    Smart semantic indexing that automatically chooses between incremental and full indexing.
+    
+    Automatically detects if a semantic index already exists and uses incremental indexing if possible.
+    """
+    indexer = IncrementalIndexer()
+    return indexer.smart_semantic_index(
+        directory_path=directory_path,
+        gdrive_folder_id=gdrive_folder_id,
+        gdrive_query=gdrive_query,
+        persist_directory=persist_directory,
+        model_name=model_name,
+        force_full=force_full
     ) 
