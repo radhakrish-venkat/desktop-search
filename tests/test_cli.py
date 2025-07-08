@@ -15,7 +15,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # Import the CLI module
-from cmd.cli import cli
+from cli_commands.cli import cli
 
 
 class TestCLI(unittest.TestCase):
@@ -67,7 +67,7 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn('desktop-search version 0.1.0', result.output)
 
-    @patch('cmd.cli.build_index')
+    @patch('cli_commands.cli.build_index')
     def test_cli_index_basic(self, mock_build_index):
         """Test basic indexing command."""
         # Mock successful index building
@@ -96,7 +96,7 @@ class TestCLI(unittest.TestCase):
         # Verify build_index was called
         mock_build_index.assert_called_once_with(self.test_dir)
 
-    @patch('cmd.cli.build_index')
+    @patch('cli_commands.cli.build_index')
     def test_cli_index_failure(self, mock_build_index):
         """Test indexing command with failure."""
         # Mock failed index building
@@ -112,8 +112,8 @@ class TestCLI(unittest.TestCase):
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn('Error: Failed to build index', result.output)
 
-    @patch('cmd.cli.build_index')
-    @patch('cmd.cli.save_index')
+    @patch('cli_commands.cli.build_index')
+    @patch('cli_commands.cli.save_index')
     def test_cli_index_with_save(self, mock_save_index, mock_build_index):
         """Test indexing command with save option."""
         # Mock successful index building and saving
@@ -140,8 +140,8 @@ class TestCLI(unittest.TestCase):
         # Verify save_index was called
         mock_save_index.assert_called_once_with(mock_index_data, index_file)
 
-    @patch('cmd.cli.build_index')
-    @patch('cmd.cli.save_index')
+    @patch('cli_commands.cli.build_index')
+    @patch('cli_commands.cli.save_index')
     def test_cli_index_save_failure(self, mock_save_index, mock_build_index):
         """Test indexing command with save failure."""
         # Mock successful index building but failed saving
@@ -165,7 +165,7 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn('Warning: Failed to save index', result.output)
 
-    @patch('cmd.cli.search_index')
+    @patch('cli_commands.cli.search_index')
     def test_cli_search_basic(self, mock_search_index):
         """Test basic search command."""
         # Mock search results
@@ -193,7 +193,7 @@ class TestCLI(unittest.TestCase):
             self.assertIn('doc1.txt', result.output)
             self.assertIn('doc2.txt', result.output)
 
-    @patch('cmd.cli.load_index')
+    @patch('cli_commands.cli.load_index')
     def test_cli_search_with_load(self, mock_load_index):
         """Test search command with load option."""
         # Mock loaded index data
@@ -204,7 +204,7 @@ class TestCLI(unittest.TestCase):
         mock_load_index.return_value = mock_index_data
         
         # Mock search results
-        with patch('cmd.cli.search_index', return_value=[{'filepath': '/test/doc1.txt', 'snippet': 'Test'}]):
+        with patch('cli_commands.cli.search_index', return_value=[{'filepath': '/test/doc1.txt', 'snippet': 'Test'}]):
             # Run search command with load
             index_file = os.path.join(self.test_dir, 'test_index.pkl')
             result = self.runner.invoke(cli, ['search', 'python', '--load', index_file])
@@ -216,7 +216,7 @@ class TestCLI(unittest.TestCase):
             # Verify load_index was called
             mock_load_index.assert_called_once_with(index_file)
 
-    @patch('cmd.cli.load_index')
+    @patch('cli_commands.cli.load_index')
     def test_cli_search_load_failure(self, mock_load_index):
         """Test search command with load failure."""
         # Mock failed index loading
@@ -239,7 +239,7 @@ class TestCLI(unittest.TestCase):
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn('Error: No index found', result.output)
 
-    @patch('cmd.cli.search_index')
+    @patch('cli_commands.cli.search_index')
     def test_cli_search_no_results(self, mock_search_index):
         """Test search command with no results."""
         # Mock empty search results
@@ -260,7 +260,7 @@ class TestCLI(unittest.TestCase):
             self.assertEqual(result.exit_code, 0)
             self.assertIn('No matching documents found', result.output)
 
-    @patch('cmd.cli.search_index')
+    @patch('cli_commands.cli.search_index')
     def test_cli_search_with_limit(self, mock_search_index):
         """Test search command with result limit."""
         # Mock many search results
@@ -303,7 +303,7 @@ class TestCLI(unittest.TestCase):
         # Verify failure
         self.assertNotEqual(result.exit_code, 0)
 
-    @patch('cmd.cli.build_index')
+    @patch('cli_commands.cli.build_index')
     def test_cli_index_exception_handling(self, mock_build_index):
         """Test indexing command exception handling."""
         # Mock exception during index building
@@ -319,7 +319,7 @@ class TestCLI(unittest.TestCase):
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn('Error during indexing', result.output)
 
-    @patch('cmd.cli.search_index')
+    @patch('cli_commands.cli.search_index')
     def test_cli_search_exception_handling(self, mock_search_index):
         """Test search command exception handling."""
         # Mock exception during search
@@ -353,10 +353,10 @@ class TestCLI(unittest.TestCase):
             self.create_test_file(filename, content)
         
         # Mock the entire workflow
-        with patch('cmd.cli.build_index') as mock_build, \
-             patch('cmd.cli.search_index') as mock_search, \
-             patch('cmd.cli.save_index') as mock_save, \
-             patch('cmd.cli.load_index') as mock_load:
+        with patch('cli_commands.cli.build_index') as mock_build, \
+             patch('cli_commands.cli.search_index') as mock_search, \
+             patch('cli_commands.cli.save_index') as mock_save, \
+             patch('cli_commands.cli.load_index') as mock_load:
             
             # Mock index building
             mock_index_data = {

@@ -9,13 +9,13 @@ project_root = os.path.abspath(os.path.dirname(__file__))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# Import the main CLI group from your cmd/cli.py file.
-# We'll define this 'cli' object in the next steps when we build cmd/cli.py.
+# Import the main CLI group from your cli_commands/cli.py file.
+# We'll define this 'cli' object in the next steps when we build cli_commands/cli.py.
 try:
-    from cmd.cli import cli
+    from cli_commands.cli import cli
 except ImportError as e:
     print(f"Error importing CLI: {e}")
-    print("Please ensure 'cmd/cli.py' exists and contains a 'cli' Click group.")
+    print("Please ensure 'cli_commands/cli.py' exists and contains a 'cli' Click group.")
     sys.exit(1)
 
 if __name__ == '__main__':

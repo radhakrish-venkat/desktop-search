@@ -142,7 +142,7 @@ Searching for: 'javascript'
 The project follows a modular architecture with clear separation of concerns:
 
 - **`main.py`**: Entry point that sets up the Python path and invokes the CLI
-- **`cmd/cli.py`**: Command-line interface using Click framework
+- **`cli_commands/cli.py`**: Command-line interface using Click framework
 - **`pkg/file_parsers/parsers.py`**: File format parsers for text extraction
 - **`pkg/indexer/core.py`**: Indexing engine with inverted index and TF-IDF
 - **`pkg/searcher/core.py`**: Search engine with ranking and snippet generation
@@ -258,7 +258,7 @@ python -m pkg.searcher.core
 ```
 desktop-search/
 ├── main.py                 # Entry point
-├── cmd/
+├── cli_commands/
 │   ├── __init__.py
 │   └── cli.py             # Command-line interface
 ├── pkg/
@@ -322,7 +322,7 @@ torch>=1.9.0
    - Add hybrid search combining keyword + semantic
    - Configurable similarity thresholds
 
-3. **Update CLI** (`cmd/cli.py`):
+3. **Update CLI** (`cli_commands/cli.py`):
    - Add `--semantic` flag for semantic search
    - Add `--hybrid` flag for combined search
    - Add `--threshold` option for similarity threshold

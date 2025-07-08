@@ -16,7 +16,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # Import the modules to test
-from cmd.cli import cli
+from cli_commands.cli import cli
 from pkg.indexer.core import build_index, save_index, load_index, get_index_stats
 from pkg.searcher.core import search_index, search_with_highlighting
 from pkg.file_parsers.parsers import get_text_from_file
