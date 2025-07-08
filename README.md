@@ -106,10 +106,6 @@ A fast and efficient local document search tool that indexes and searches throug
 
 **For full details, see [SECURITY.md](SECURITY.md).**
 
-
-
-For detailed security information, see [SECURITY.md](SECURITY.md).
-
 ## Installation
 
 1. Clone the repository:
