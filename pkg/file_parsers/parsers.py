@@ -151,6 +151,10 @@ def get_text_from_docx(filepath: str) -> str:
             if paragraph.text.strip():
                 text += paragraph.text + "\n"
         
+        # Remove trailing newline if present
+        if text.endswith('\n'):
+            text = text[:-1]
+        
         # Extract text from tables
         for table in document.tables:
             for row in table.rows:
@@ -258,11 +262,15 @@ def get_text_from_file(filepath: str) -> Tuple[Optional[str], str]:
     Returns:
         Tuple of (extracted_text, file_extension)
     """
+    # Check if file exists first
+    if not os.path.exists(filepath):
+        return None, os.path.splitext(filepath)[1].lower()
+    
     _, ext = os.path.splitext(filepath)
     ext = ext.lower()
 
     # Supported file types
-    if ext == '.txt':
+    if ext in ['.txt', '.md', '.ini', '.cfg', '.conf', '.log', '.csv']:
         return get_text_from_txt(filepath), ext
     elif ext == '.pdf':
         return get_text_from_pdf(filepath), ext

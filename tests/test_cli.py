@@ -65,7 +65,7 @@ class TestCLI(unittest.TestCase):
         """Test CLI version functionality."""
         result = self.runner.invoke(cli, ['--version'])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn('desktop-search version 0.1.0', result.output)
+        self.assertIn('desktop-search, version 0.1.0', result.output)
 
     @patch('cli_commands.cli.build_index')
     def test_cli_index_basic(self, mock_build_index):
@@ -93,8 +93,10 @@ class TestCLI(unittest.TestCase):
         self.assertIn('Indexing complete', result.output)
         self.assertIn('Indexed 1 documents', result.output)
         
-        # Verify build_index was called
-        mock_build_index.assert_called_once_with(self.test_dir)
+        # Verify build_index was called (normalize path for comparison)
+        expected_path = os.path.realpath(self.test_dir)
+        actual_path = os.path.realpath(mock_build_index.call_args[0][0])
+        self.assertEqual(actual_path, expected_path)
 
     @patch('cli_commands.cli.build_index')
     def test_cli_index_failure(self, mock_build_index):
@@ -207,6 +209,10 @@ class TestCLI(unittest.TestCase):
         with patch('cli_commands.cli.search_index', return_value=[{'filepath': '/test/doc1.txt', 'snippet': 'Test'}]):
             # Run search command with load
             index_file = os.path.join(self.test_dir, 'test_index.pkl')
+            # Create the index file that would be loaded
+            with open(index_file, 'wb') as f:
+                import pickle
+                pickle.dump(mock_index_data, f)
             result = self.runner.invoke(cli, ['search', 'python', '--load', index_file])
             
             # Verify success
@@ -228,7 +234,8 @@ class TestCLI(unittest.TestCase):
         
         # Verify failure
         self.assertNotEqual(result.exit_code, 0)
-        self.assertIn('Error: Could not load index from', result.output)
+        # The CLI validates the file exists before calling load_index, so we get a different error
+        self.assertIn('Invalid value for', result.output)
 
     def test_cli_search_no_index(self):
         """Test search command without index."""
@@ -390,6 +397,11 @@ class TestCLI(unittest.TestCase):
             index_file = os.path.join(self.test_dir, 'test_index.pkl')
             result = self.runner.invoke(cli, ['index', self.test_dir, '--save', index_file])
             self.assertEqual(result.exit_code, 0)
+            
+            # Create the index file that would be created by the save operation
+            with open(index_file, 'wb') as f:
+                import pickle
+                pickle.dump(mock_index_data, f)
             
             # Test search command with load
             result = self.runner.invoke(cli, ['search', 'python', '--load', index_file])

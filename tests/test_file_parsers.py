@@ -145,7 +145,7 @@ class TestFileParsers(unittest.TestCase):
         filepath = self.create_test_file('test.docx', 'fake docx content')
         result = get_text_from_docx(filepath)
         
-        expected = "Paragraph 1\nParagraph 2\n"
+        expected = "Paragraph 1\nParagraph 2"
         self.assertEqual(result, expected)
 
     @patch('pkg.file_parsers.parsers.XLSX_AVAILABLE', True)

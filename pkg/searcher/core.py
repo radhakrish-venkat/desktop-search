@@ -27,7 +27,7 @@ def _tokenize_text(text: str) -> List[str]:
     stop_words = {
         'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
         'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does',
-        'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that',
+        'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'that', 'over', 'too',
         'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her',
         'us', 'them', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'mine', 'yours'
     }
@@ -87,6 +87,9 @@ def _generate_snippet(full_text: str, keywords: List[str], window_size: int = 20
         A snippet of text containing keywords, with ellipses if truncated
     """
     if not full_text or not keywords:
+        # Handle None or empty text
+        if full_text is None:
+            return ""
         return full_text[:window_size] + "..." if len(full_text) > window_size else full_text
     
     text_lower = full_text.lower()
@@ -113,7 +116,10 @@ def _generate_snippet(full_text: str, keywords: List[str], window_size: int = 20
                 break
     
     if best_match_index == -1:
-        return full_text[:window_size] + "..." if len(full_text) > window_size else full_text
+        # No keywords found, return truncated text with ellipses
+        if len(full_text) > window_size:
+            return full_text[:window_size] + "..."
+        return full_text
 
     # Calculate start and end for the snippet
     start_index = max(0, best_match_index - window_size // 2)

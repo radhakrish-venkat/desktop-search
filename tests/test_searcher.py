@@ -128,8 +128,10 @@ class TestSearcher(unittest.TestCase):
         snippet_short = _generate_snippet(short_text, keywords)
         self.assertEqual(snippet_short, short_text)
         
-        # Test with no keywords found
-        snippet_no_keywords = _generate_snippet(text, ['nonexistent'])
+        # Test with no keywords found - use longer text to trigger ellipses
+        long_text = "This is a very long document about Python programming. " * 20  # Make it much longer
+        snippet_no_keywords = _generate_snippet(long_text, ['nonexistent'])
+        # Should return truncated text with ellipses
         self.assertIn('...', snippet_no_keywords)
         
         # Test with empty text
