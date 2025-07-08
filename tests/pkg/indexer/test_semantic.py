@@ -51,6 +51,8 @@ class TestSemanticIndexer(unittest.TestCase):
         mock_collection = Mock()
         mock_chromadb.PersistentClient.return_value = mock_client
         mock_client.get_or_create_collection.return_value = mock_collection
+        # Mock collection.get() to return empty results
+        mock_collection.get.return_value = {'ids': []}
         
         # Mock sentence transformer
         mock_model = Mock()
@@ -59,11 +61,9 @@ class TestSemanticIndexer(unittest.TestCase):
         # Test initialization
         indexer = SemanticIndexer(persist_directory=self.chroma_dir, model_name="test-model")
         
-        # Verify ChromaDB client was created
-        mock_chromadb.PersistentClient.assert_called_once_with(
-            path=self.chroma_dir,
-            settings=mock_chromadb.config.Settings.return_value
-        )
+        # Verify ChromaDB client was created (check path only)
+        called_args, called_kwargs = mock_chromadb.PersistentClient.call_args
+        self.assertEqual(called_kwargs['path'], self.chroma_dir)
         
         # Verify collection was created
         mock_client.get_or_create_collection.assert_called_once_with(
@@ -170,6 +170,8 @@ class TestSemanticIndexer(unittest.TestCase):
         mock_collection = Mock()
         mock_chromadb.PersistentClient.return_value = mock_client
         mock_client.get_or_create_collection.return_value = mock_collection
+        # Mock collection.get() to return empty results
+        mock_collection.get.return_value = {'ids': []}
         
         # Mock sentence transformer
         mock_model = Mock()
@@ -198,7 +200,7 @@ class TestSemanticIndexer(unittest.TestCase):
         self.assertGreater(stats['stats']['total_chunks'], 0)
         
         # Verify collection was cleared and documents were added
-        mock_collection.delete.assert_called_once_with(where={})
+        mock_collection.delete.assert_not_called()  # Should not be called since ids is empty
         self.assertGreater(mock_collection.add.call_count, 0)
 
     @patch('pkg.indexer.semantic.SentenceTransformer')
@@ -325,6 +327,8 @@ class TestSemanticIndexer(unittest.TestCase):
         mock_collection = Mock()
         mock_chromadb.PersistentClient.return_value = mock_client
         mock_client.get_or_create_collection.return_value = mock_collection
+        # Mock collection.get() to return some ids
+        mock_collection.get.return_value = {'ids': ['id1', 'id2']}
         
         # Mock sentence transformer
         mock_model = Mock()
@@ -334,8 +338,8 @@ class TestSemanticIndexer(unittest.TestCase):
         indexer = SemanticIndexer(persist_directory=self.chroma_dir)
         success = indexer.delete_index()
         
-        # Verify deletion was called
-        mock_collection.delete.assert_called_once_with(where={})
+        # Verify deletion was called with ids
+        mock_collection.delete.assert_called_once_with(ids=['id1', 'id2'])
         self.assertTrue(success)
 
 

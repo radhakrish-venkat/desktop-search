@@ -242,11 +242,14 @@ class SemanticIndexer:
             # Process results
             search_results = []
             
-            if results and results.get('documents') and results['documents'][0]:
+            documents = results.get('documents', [])
+            if results and documents and documents[0]:
+                metadatas = results.get('metadatas', [[]]) or [[]]
+                distances = results.get('distances', [[]]) or [[]]
                 for i, (doc, metadata, distance) in enumerate(zip(
-                    results['documents'][0],
-                    results.get('metadatas', [[]])[0],
-                    results.get('distances', [[]])[0]
+                    documents[0],  # type: ignore
+                    metadatas[0],  # type: ignore
+                    distances[0]  # type: ignore
                 )):
                     # Convert distance to similarity score (ChromaDB uses cosine distance)
                     similarity = 1 - distance
