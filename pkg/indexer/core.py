@@ -2,42 +2,57 @@ import os
 import re
 import sys
 import pickle
-from typing import Dict, Set, List, Optional, Any
+import hashlib
+import json
 import logging
+from typing import Dict, Set, List, Optional, Any
 from collections import defaultdict
 
 # Import our file parsing utility
 from pkg.file_parsers.parsers import get_text_from_file
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Import secure logging
+try:
+    from pkg.utils.logging import setup_secure_logging, log_file_operation, log_error_with_context
+    logger = setup_secure_logging(__name__, logging.WARNING)
+except ImportError:
+    # Fallback to basic logging if secure logging not available
+    logging.basicConfig(level=logging.WARNING)
+    logger = logging.getLogger(__name__)
 
-# File patterns to skip
-SKIP_PATTERNS = [
-    r'\.git/',
-    r'node_modules/',
-    r'\.DS_Store$',
-    r'\.pyc$',
-    r'\.log$',
-    r'\.tmp$',
-    r'\.cache/',
-    r'__pycache__/',
-    r'\.vscode/',
-    r'\.idea/'
-]
+# File patterns to skip during indexing
+SKIP_PATTERNS = {
+    '.git', '.svn', '.hg', '.bzr',  # Version control
+    '__pycache__', '.pytest_cache',  # Python cache
+    '.DS_Store', 'Thumbs.db',  # OS files
+    'node_modules', '.npm',  # Node.js
+    '.venv', 'venv', 'env',  # Python virtual environments
+    '.idea', '.vscode',  # IDE files
+    '*.tmp', '*.temp', '*.swp', '*.swo',  # Temporary files
+    '*.log', '*.out',  # Log files
+    '.index', 'index.pkl', 'index_metadata.json',  # Index files
+    'chroma_db',  # ChromaDB directory
+}
+
+# Stop words to filter out during tokenization
+stop_words = {
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those'
+}
 
 def _should_skip_file(filepath: str) -> bool:
-    """Check if file should be skipped based on patterns."""
-    for pattern in SKIP_PATTERNS:
-        if re.search(pattern, filepath, re.IGNORECASE):
-            return True
-    return False
+    """Check if a file should be skipped during indexing."""
+    filename = os.path.basename(filepath)
+    return any(pattern in filename for pattern in SKIP_PATTERNS)
 
 def _tokenize_text(text: str) -> List[str]:
     """
+    Tokenizes text into individual words.
+    
     Performs basic tokenization: converts to lowercase and splits by non-alphanumeric characters.
-    Filters out empty strings and common stop words.
+    Filters out stop words and very short tokens.
     
     Args:
         text: Input text to tokenize
@@ -45,20 +60,12 @@ def _tokenize_text(text: str) -> List[str]:
     Returns:
         List of tokens
     """
-    if not isinstance(text, str) or not text.strip():
+    if not text:
         return []
     
-    # Common stop words to filter out
-    stop_words = {
-        'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
-        'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does',
-        'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'that', 'over', 'too',
-        'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her',
-        'us', 'them', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'mine', 'yours'
-    }
+    import re
     
-    text = text.lower()
-    # Split by any character that is not a letter, number, or underscore
+    # Convert to lowercase and split by non-alphanumeric characters
     tokens = [token for token in re.split(r'\W+', text) if token and len(token) > 1]
     
     # Filter out stop words and short tokens
@@ -66,14 +73,51 @@ def _tokenize_text(text: str) -> List[str]:
     
     return tokens
 
+def _compute_index_integrity_hash(index_data: Dict[str, Any]) -> str:
+    """Compute SHA256 hash of index data for integrity verification."""
+    # Create a copy without the integrity hash for consistent hashing
+    data_for_hash = {k: v for k, v in index_data.items() if k != '_integrity_hash'}
+    # Sort keys for consistent hashing
+    sorted_data = json.dumps(data_for_hash, sort_keys=True, default=str)
+    return hashlib.sha256(sorted_data.encode('utf-8')).hexdigest()
+
+def _validate_index_structure(index_data: Dict[str, Any]) -> bool:
+    """Validate that index data has the expected structure."""
+    required_keys = ['inverted_index', 'document_store', 'indexed_directory', 'stats']
+    
+    if not isinstance(index_data, dict):
+        logger.error("Index data is not a dictionary")
+        return False
+    
+    for key in required_keys:
+        if key not in index_data:
+            logger.error(f"Missing required key in index data: {key}")
+            return False
+    
+    # Validate inverted_index structure
+    if not isinstance(index_data['inverted_index'], dict):
+        logger.error("inverted_index is not a dictionary")
+        return False
+    
+    # Validate document_store structure
+    if not isinstance(index_data['document_store'], dict):
+        logger.error("document_store is not a dictionary")
+        return False
+    
+    # Validate stats structure
+    if not isinstance(index_data['stats'], dict):
+        logger.error("stats is not a dictionary")
+        return False
+    
+    return True
+
 def build_index(directory_path: str) -> Optional[Dict[str, Any]]:
     """
-    Scans the specified directory, extracts text from supported files,
-    and builds an inverted index and a document store.
-
+    Builds an inverted index from all supported documents in the specified directory.
+    
     Args:
-        directory_path: The path to the directory to scan.
-
+        directory_path: Path to the directory containing documents to index
+        
     Returns:
         Dictionary containing inverted_index, document_store, and indexed_directory,
         or None if an error occurs.
@@ -103,6 +147,7 @@ def build_index(directory_path: str) -> Optional[Dict[str, Any]]:
                 continue
 
             try:
+                log_file_operation("processing", filepath, logger)
                 extracted_text, file_ext = get_text_from_file(filepath)
 
                 if extracted_text and extracted_text.strip():
@@ -127,7 +172,7 @@ def build_index(directory_path: str) -> Optional[Dict[str, Any]]:
                         logger.info(f"Processed {processed_files} files...")
                         
             except Exception as e:
-                logger.warning(f"Error processing file {filepath}: {e}")
+                log_error_with_context(e, f"processing file {filepath}", logger)
                 skipped_files += 1
                 continue
 
@@ -147,7 +192,7 @@ def build_index(directory_path: str) -> Optional[Dict[str, Any]]:
 
 def save_index(index_data: Dict[str, Any], filepath: str) -> bool:
     """
-    Saves the index data to a file using pickle.
+    Saves the index data to a file using pickle with integrity protection.
 
     Args:
         index_data: The dictionary containing index data
@@ -157,18 +202,27 @@ def save_index(index_data: Dict[str, Any], filepath: str) -> bool:
         True if successful, False otherwise
     """
     try:
+        # Validate index structure before saving
+        if not _validate_index_structure(index_data):
+            logger.error(f"Invalid index structure, cannot save to {filepath}")
+            return False
+        
+        # Add integrity hash
+        index_data['_integrity_hash'] = _compute_index_integrity_hash(index_data)
+        
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        log_file_operation("saving index to", filepath, logger)
         with open(filepath, 'wb') as f:
             pickle.dump(index_data, f)
         logger.info(f"Index saved successfully to {filepath}")
         return True
     except (pickle.PickleError, OSError, IOError) as e:
-        logger.error(f"Error saving index to {filepath}: {e}")
+        log_error_with_context(e, f"saving index to {filepath}", logger)
         return False
 
 def load_index(filepath: str) -> Optional[Dict[str, Any]]:
     """
-    Loads the index data from a file using pickle.
+    Loads the index data from a file using pickle with integrity verification.
 
     Args:
         filepath: The full path to the file from which the index should be loaded.
@@ -181,12 +235,35 @@ def load_index(filepath: str) -> Optional[Dict[str, Any]]:
         return None
         
     try:
+        log_file_operation("loading index from", filepath, logger)
         with open(filepath, 'rb') as f:
             index_data = pickle.load(f)
+        
+        # Validate index structure
+        if not _validate_index_structure(index_data):
+            logger.error(f"Invalid index structure in {filepath}")
+            return None
+        
+        # Verify integrity hash
+        stored_hash = index_data.get('_integrity_hash')
+        if stored_hash:
+            # Remove hash for verification
+            index_data_copy = {k: v for k, v in index_data.items() if k != '_integrity_hash'}
+            computed_hash = _compute_index_integrity_hash(index_data_copy)
+            
+            if stored_hash != computed_hash:
+                logger.error(f"Index file integrity check failed for {filepath}")
+                return None
+            
+            # Remove hash from returned data
+            index_data.pop('_integrity_hash')
+        else:
+            logger.warning(f"No integrity hash found in {filepath}, skipping verification")
+        
         logger.info(f"Index loaded successfully from {filepath}")
         return index_data
     except (pickle.PickleError, OSError, IOError) as e:
-        logger.error(f"Error loading index from {filepath}: {e}")
+        log_error_with_context(e, f"loading index from {filepath}", logger)
         return None
 
 def get_index_stats(index_data: Dict[str, Any]) -> Dict[str, Any]:
