@@ -160,4 +160,23 @@ class APIKeyInfo(BaseModel):
 
 class APIKeyList(BaseModel):
     """API key list response model"""
-    keys: List[APIKeyInfo] 
+    keys: List[APIKeyInfo]
+
+class LLMEnhanceRequest(BaseModel):
+    """LLM-enhanced search request model"""
+    query: str = Field(..., description="Search query")
+    search_type: SearchType = Field(SearchType.SEMANTIC, description="Type of search to perform")
+    limit: int = Field(10, ge=1, le=100, description="Maximum number of results")
+    threshold: float = Field(0.3, ge=0.0, le=1.0, description="Similarity threshold for semantic search")
+
+class LLMQuestionRequest(BaseModel):
+    """LLM question answering request model"""
+    question: str = Field(..., description="Question to ask")
+    max_results: int = Field(10, ge=1, le=50, description="Maximum number of search results to use")
+    threshold: float = Field(0.3, ge=0.0, le=1.0, description="Similarity threshold for search")
+
+class LLMSummaryRequest(BaseModel):
+    """LLM summary generation request model"""
+    query: str = Field(..., description="Search query for documents to summarize")
+    max_results: int = Field(20, ge=1, le=50, description="Maximum number of search results to summarize")
+    threshold: float = Field(0.3, ge=0.0, le=1.0, description="Similarity threshold for search") 

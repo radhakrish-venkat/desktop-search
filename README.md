@@ -452,3 +452,72 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Security
 
 For security issues, please email [security-email] instead of creating a public issue.
+
+## 🤖 LLM-Enhanced Search (ChatGPT-like, 100% Local)
+
+Desktop Search now supports advanced, ChatGPT-style search and summarization using local LLMs and embeddings. All processing is fully local—no data ever leaves your machine.
+
+### Features
+- **Ask questions about your documents** (natural language Q&A)
+- **Summarize search results**
+- **Get insights and recommendations**
+- **Choose your own models**: Use `bge-small-en`, `nomic-embed-text`, or others for embeddings; `phi3`, `mistral`, etc. for LLMs
+- **Provider support**: Works with [Ollama](https://ollama.ai) and [LocalAI](https://localai.io)
+- **No cloud, no OpenAI, no data leaks**
+
+### Supported Models
+- **Embeddings**: `bge-small-en`, `nomic-embed-text`, `all-MiniLM-L6-v2` (default/fallback)
+- **LLMs**: `phi3`, `mistral`, `llama2`, `codellama` (via Ollama/LocalAI)
+
+### How It Works
+- **Vector DB**: Uses ChromaDB for fast, local vector search
+- **Embeddings**: Sentence Transformers (configurable)
+- **LLM**: Local model (Ollama/LocalAI) generates answers/summaries
+- **Privacy**: No document or query data is sent to the cloud
+
+### Usage
+
+#### CLI
+```bash
+python main.py llm search "What is this project about?"
+```
+
+#### API Example
+```bash
+curl -X POST "https://localhost:8443/api/v1/llm/search" \
+     -H "Authorization: Bearer YOUR_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "query": "project summary",
+       "max_results": 5,
+       "use_llm": true,
+       "llm_model": "phi3",
+       "embedding_model": "bge-small-en"
+     }'
+```
+
+#### Python Example
+```python
+import requests
+resp = requests.post(
+    "https://localhost:8443/api/v1/llm/search",
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    json={
+        "query": "project summary",
+        "max_results": 5,
+        "use_llm": True,
+        "llm_model": "phi3",
+        "embedding_model": "bge-small-en"
+    },
+    verify=False  # For self-signed certs
+)
+print(resp.json())
+```
+
+#### Model/Provider Info
+- List available models: `GET /api/v1/llm/models/available`
+- List providers: `GET /api/v1/llm/providers/available`
+- Change models: `POST /api/v1/llm/config`
+
+#### More
+See [LLM_SETUP.md](LLM_SETUP.md) for full setup, troubleshooting, and advanced usage.
