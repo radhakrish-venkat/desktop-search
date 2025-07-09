@@ -57,7 +57,7 @@ Thumbs.db
 logs/
 
 # Data files
-data/chroma_db/
+data/
 *.pkl
 *.pickle
 
