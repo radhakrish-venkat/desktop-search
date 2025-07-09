@@ -10,7 +10,22 @@ The Desktop Search API supports two authentication methods:
 
 ## 🚀 Quick Start
 
-### 1. Set Up Admin Key (First Time Only)
+### 1. Automatic Initialization
+
+The application automatically initializes all necessary components on startup, including checking for API keys:
+
+```bash
+# Check application status
+python main.py status
+
+# Initialize missing components
+python main.py init
+
+# Reinitialize everything from scratch
+python main.py reinitialize --force
+```
+
+### 2. Set Up Admin Key (First Time Only)
 
 Before creating API keys, you need to set an admin key:
 

@@ -58,6 +58,19 @@ This will:
 - Create the necessary directory structure
 - Prepare the application for Google Drive authentication
 
+**Note**: The application automatically initializes all necessary components on startup. If you encounter any issues, you can manually check and fix the setup:
+
+```bash
+# Check application status
+python main.py status
+
+# Initialize missing components
+python main.py init
+
+# Reinitialize everything from scratch
+python main.py reinitialize --force
+```
+
 ## Step 5: First Authentication
 
 When you first run a Google Drive command, the application will:

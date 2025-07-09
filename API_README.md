@@ -21,7 +21,29 @@ This FastAPI backend provides a REST API for the Desktop Search application, ena
 pip install -r requirements.txt
 ```
 
-### 2. Start the API Server
+### 2. Automatic Initialization
+
+The API server automatically initializes all necessary components on startup:
+
+- **SSL Certificates**: Auto-generates self-signed certificates for HTTPS
+- **Database Setup**: Creates ChromaDB directories and structure
+- **Configuration Files**: Initializes default directories.json and metadata
+- **API Key Validation**: Checks environment variables and provides guidance
+
+You can also manage initialization manually:
+
+```bash
+# Check application status
+python main.py status
+
+# Initialize components
+python main.py init
+
+# Reinitialize everything from scratch
+python main.py reinitialize --force
+```
+
+### 3. Start the API Server
 
 ```bash
 # Option 1: Using uvicorn directly
@@ -34,13 +56,15 @@ python start_api.py
 python start_https.py
 ```
 
-### 3. Access the API
+### 4. Access the API
 
 - **API Documentation**: https://localhost:8443/docs
 - **Alternative Docs**: https://localhost:8443/redoc
 - **Health Check**: https://localhost:8443/health
 - **API Base URL**: https://localhost:8443/api/v1
 - **Web Interface**: https://localhost:8443
+
+**Note**: The frontend automatically uses `localhost` for API calls to avoid connection issues. If you experience "failed to fetch" errors, ensure you're accessing the web interface via `https://localhost:8443` rather than `https://127.0.0.1:8443`.
 
 ## API Endpoints
 

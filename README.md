@@ -50,6 +50,14 @@ A fast and efficient local document search tool that indexes and searches throug
 - **Input Validation**: Comprehensive path and parameter validation
 - **No Code Injection**: No use of eval(), exec(), or shell commands
 
+### **🚀 Automatic Initialization**
+- **Smart Startup**: Automatically checks and creates all necessary components
+- **Certificate Management**: Auto-generates SSL certificates if missing
+- **Database Setup**: Creates ChromaDB directories and structure
+- **Configuration Files**: Initializes default directories.json and metadata
+- **API Key Validation**: Checks environment variables and provides guidance
+- **Reinitialize Capability**: Complete reset functionality for fresh starts
+
 ## Advantages
 
 ### **🚀 Performance Benefits**
@@ -138,6 +146,30 @@ The following packages are required:
 - `python-magic` - File type detection
 
 ## Usage
+
+### Initialization & Setup
+
+The application automatically initializes all necessary components on startup, but you can also manage them manually:
+
+**Check application status:**
+```bash
+python main.py status
+```
+
+**Initialize application components:**
+```bash
+python main.py init
+```
+
+**Reinitialize everything from scratch:**
+```bash
+python main.py reinitialize --force
+```
+
+**Fix missing components:**
+```bash
+python main.py status --fix
+```
 
 ### Command Line Interface
 

@@ -42,6 +42,10 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Setup custom Swagger documentation
+from api.swagger_docs import setup_swagger_docs
+setup_swagger_docs(app)
+
 # Add security middleware
 app.add_middleware(SecurityMiddleware)
 

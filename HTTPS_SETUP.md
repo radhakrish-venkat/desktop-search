@@ -4,9 +4,16 @@ This guide covers setting up HTTPS for the Desktop Search API, including develop
 
 ## 🔐 Quick Start (Development)
 
-### 1. Generate Self-Signed Certificates
+### 1. Automatic Certificate Generation
 
-For development and testing, generate self-signed certificates:
+The application automatically generates self-signed certificates if they don't exist:
+
+```bash
+# Certificates are auto-generated on startup
+python start_https.py
+```
+
+Or manually generate certificates:
 
 ```bash
 python generate_certs.py
@@ -15,6 +22,19 @@ python generate_certs.py
 This creates:
 - `certs/key.pem` - Private key
 - `certs/cert.pem` - Self-signed certificate
+
+**Note**: The application automatically initializes all necessary components on startup, including SSL certificates. You can also check and manage certificates manually:
+
+```bash
+# Check application status
+python main.py status
+
+# Initialize missing components
+python main.py init
+
+# Reinitialize everything from scratch
+python main.py reinitialize --force
+```
 
 ### 2. Start HTTPS Server
 
