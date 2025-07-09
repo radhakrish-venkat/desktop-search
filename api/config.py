@@ -26,6 +26,10 @@ class Settings(BaseSettings):
         "http://localhost",       # HTTP localhost (any port)
         "https://127.0.0.1",     # HTTPS 127.0.0.1 (any port)
         "http://127.0.0.1",      # HTTP 127.0.0.1 (any port)
+        "https://localhost:8443", # HTTPS localhost with specific port
+        "http://localhost:8443",  # HTTP localhost with specific port
+        "https://127.0.0.1:8443", # HTTPS 127.0.0.1 with specific port
+        "http://127.0.0.1:8443", # HTTP 127.0.0.1 with specific port
     ]
     
     # Production CORS settings (set via environment variable)

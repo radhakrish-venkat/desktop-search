@@ -7,6 +7,7 @@ from pkg.indexer.semantic import SemanticIndexer
 from pkg.indexer.google_drive import build_google_drive_index, search_google_drive
 from pkg.utils.google_drive import setup_google_drive_credentials, GOOGLE_DRIVE_AVAILABLE
 from pkg.indexer.incremental import smart_semantic_index
+from pkg.utils.initialization import check_app_status, initialize_app, reinitialize_app
 
 # --- Main Click Group ---
 @click.group()
@@ -16,6 +17,173 @@ def cli():
     A simple local document search tool with unified ChromaDB indexing.
     """
     pass
+
+# --- Status Command ---
+@cli.command()
+@click.option('--fix', is_flag=True, help='Automatically fix missing components')
+@click.option('--reinitialize', is_flag=True, help='Reinitialize everything from scratch (removes all existing data)')
+def status(fix: bool, reinitialize: bool):
+    """
+    Check the status of the Desktop Search application components.
+    
+    Shows the status of:
+    - SSL certificates
+    - Database
+    - API keys
+    - Directories configuration
+    """
+    click.echo("🔍 Checking Desktop Search application status...")
+    
+    try:
+        status_info = check_app_status()
+        
+        # Display status
+        click.echo("\n📊 Application Status:")
+        click.echo("=" * 50)
+        
+        # Certificates
+        certs = status_info['certs']
+        click.echo("🔐 SSL Certificates:")
+        click.echo(f"   Key file: {'✅' if certs['key_exists'] else '❌'}")
+        click.echo(f"   Cert file: {'✅' if certs['cert_exists'] else '❌'}")
+        
+        # Database
+        db = status_info['database']
+        click.echo("\n🗄️  Database:")
+        click.echo(f"   Data directory: {'✅' if db['data_dir_exists'] else '❌'}")
+        click.echo(f"   ChromaDB directory: {'✅' if db['chroma_db_exists'] else '❌'}")
+        click.echo(f"   Has data: {'✅' if db['has_data'] else '❌'}")
+        
+        # API Keys
+        keys = status_info['api_keys']
+        click.echo("\n🔑 API Keys:")
+        click.echo(f"   API_KEY: {'✅' if keys['api_key_set'] else '❌'}")
+        click.echo(f"   JWT_SECRET_KEY: {'✅' if keys['jwt_secret_set'] else '❌'}")
+        
+        # Directories
+        dirs = status_info['directories']
+        click.echo("\n📁 Directories Configuration:")
+        click.echo(f"   directories.json: {'✅' if dirs['config_exists'] else '❌'}")
+        
+        # Summary
+        all_good = (
+            certs['key_exists'] and certs['cert_exists'] and
+            db['data_dir_exists'] and db['chroma_db_exists'] and
+            dirs['config_exists']
+        )
+        
+        click.echo("\n" + "=" * 50)
+        
+        if reinitialize:
+            click.echo("\n🔄 Reinitializing everything from scratch...")
+            click.echo("⚠️  This will remove ALL existing data including:")
+            click.echo("   - SSL certificates")
+            click.echo("   - Database and indexes")
+            click.echo("   - Directory configurations")
+            click.echo("   - Index metadata")
+            
+            if click.confirm("Are you sure you want to continue?"):
+                if reinitialize_app():
+                    click.echo("✅ Reinitialization completed successfully!")
+                else:
+                    click.echo("❌ Reinitialization failed!")
+                    raise click.Abort()
+            else:
+                click.echo("❌ Reinitialization cancelled")
+                raise click.Abort()
+        elif all_good:
+            click.echo("✅ All components are ready!")
+        else:
+            click.echo("⚠️  Some components are missing or incomplete")
+            
+            if fix:
+                click.echo("\n🔧 Attempting to fix missing components...")
+                if initialize_app():
+                    click.echo("✅ Fixed successfully!")
+                else:
+                    click.echo("❌ Failed to fix some components")
+            else:
+                click.echo("\n💡 Run 'desktop-search status --fix' to automatically fix missing components")
+                click.echo("   Or run 'desktop-search status --reinitialize' to start completely fresh")
+        
+    except Exception as e:
+        click.echo(f"❌ Error checking status: {e}", err=True)
+        raise click.Abort()
+
+# --- Reinitialize Command ---
+@cli.command()
+@click.option('--force', '-f', is_flag=True, help='Skip confirmation prompt')
+def reinitialize(force: bool):
+    """
+    Reinitialize the Desktop Search application from scratch.
+    
+    WARNING: This will remove ALL existing data including:
+    - SSL certificates
+    - Database and indexes
+    - Directory configurations
+    - Index metadata
+    
+    Use this when you want to start completely fresh.
+    """
+    click.echo("🔄 Reinitializing Desktop Search application from scratch...")
+    click.echo("⚠️  This will remove ALL existing data!")
+    
+    if not force:
+        click.echo("\nThe following will be removed:")
+        click.echo("   - SSL certificates")
+        click.echo("   - Database and indexes")
+        click.echo("   - Directory configurations")
+        click.echo("   - Index metadata")
+        
+        if not click.confirm("Are you sure you want to continue?"):
+            click.echo("❌ Reinitialization cancelled")
+            raise click.Abort()
+    
+    try:
+        if reinitialize_app():
+            click.echo("✅ Reinitialization completed successfully!")
+            click.echo("\n📋 What was recreated:")
+            click.echo("   🔐 SSL certificates")
+            click.echo("   🗄️  Database directories")
+            click.echo("   📁 Directories configuration")
+            click.echo("   🔑 API key status checked")
+        else:
+            click.echo("❌ Reinitialization failed!")
+            raise click.Abort()
+            
+    except Exception as e:
+        click.echo(f"❌ Error during reinitialization: {e}", err=True)
+        raise click.Abort()
+
+# --- Init Command ---
+@cli.command()
+def init():
+    """
+    Initialize the Desktop Search application.
+    
+    Creates all necessary components:
+    - SSL certificates
+    - Database directories
+    - Directories configuration
+    - Checks API keys
+    """
+    click.echo("🚀 Initializing Desktop Search application...")
+    
+    try:
+        if initialize_app():
+            click.echo("✅ Application initialized successfully!")
+            click.echo("\n📋 What was created:")
+            click.echo("   🔐 SSL certificates (if missing)")
+            click.echo("   🗄️  Database directories")
+            click.echo("   📁 Directories configuration")
+            click.echo("   🔑 API key status checked")
+        else:
+            click.echo("❌ Initialization failed!")
+            raise click.Abort()
+            
+    except Exception as e:
+        click.echo(f"❌ Error during initialization: {e}", err=True)
+        raise click.Abort()
 
 # --- Index Command ---
 @cli.command()

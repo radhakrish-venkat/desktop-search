@@ -114,13 +114,13 @@ class TestSearcher(unittest.TestCase):
             # Test search
             results = indexer.semantic_search('programming', n_results=5)
         
-        self.assertIsInstance(results, list)
-        self.assertGreater(len(results), 0)
-        
-        # Verify result structure
-        for result in results:
-            self.assertIn('filepath', result)
-            self.assertIn('snippet', result)
+            self.assertIsInstance(results, list)
+            self.assertGreater(len(results), 0)
+            
+            # Verify result structure
+            for result in results:
+                self.assertIn('filepath', result)
+                self.assertIn('snippet', result)
                 self.assertIn('similarity', result)
         finally:
             shutil.rmtree(test_dir, ignore_errors=True)
@@ -149,7 +149,7 @@ class TestSearcher(unittest.TestCase):
             
             # Test search for something that won't be found
             results = indexer.semantic_search('nonexistent', n_results=5)
-        self.assertEqual(results, [])
+            self.assertEqual(results, [])
         finally:
             shutil.rmtree(test_dir, ignore_errors=True)
 
@@ -179,9 +179,9 @@ class TestSearcher(unittest.TestCase):
             # Test search
             results = indexer.semantic_search('python programming', n_results=5)
         
-        # Should have results
-        self.assertGreater(len(results), 0)
-        
+            # Should have results
+            self.assertGreater(len(results), 0)
+            
             # Results should be ranked by similarity
             if len(results) > 1:
                 self.assertGreaterEqual(results[0]['similarity'], results[1]['similarity'])
@@ -233,13 +233,13 @@ class TestSearcher(unittest.TestCase):
             indexer = SemanticIndexer(persist_directory=os.path.join(test_dir, 'chroma_db'))
             indexer.build_semantic_index(test_dir)
             
-        # Test empty query
+            # Test empty query
             results = indexer.semantic_search('', n_results=5)
-        self.assertEqual(results, [])
-        
-        # Test query with only whitespace
+            self.assertEqual(results, [])
+            
+            # Test query with only whitespace
             results = indexer.semantic_search('   ', n_results=5)
-        self.assertEqual(results, [])
+            self.assertEqual(results, [])
         finally:
             shutil.rmtree(test_dir, ignore_errors=True)
 
@@ -266,19 +266,19 @@ class TestSearcher(unittest.TestCase):
             indexer = SemanticIndexer(persist_directory=os.path.join(test_dir, 'chroma_db'))
             indexer.build_semantic_index(test_dir)
             
-        # Test complete search workflow
-        queries = [
-            "python",
-            "programming language",
-            "java javascript",
-            "web development",
-            "nonexistent term"
-        ]
-        
-        for query in queries:
+            # Test complete search workflow
+            queries = [
+                "python",
+                "programming language",
+                "java javascript",
+                "web development",
+                "nonexistent term"
+            ]
+            
+            for query in queries:
                 results = indexer.semantic_search(query, n_results=5)
                 self.assertIsInstance(results, list)
-            
+                
                 # Verify result structure
                 for result in results:
                     self.assertIn('filepath', result)

@@ -22,6 +22,17 @@ from api.config import settings
 from api.middleware.security import SecurityMiddleware
 from api.middleware.rate_limit import rate_limit_middleware
 
+# Initialize application on startup
+try:
+    from pkg.utils.initialization import initialize_app
+    print("🚀 Starting Desktop Search API...")
+    if not initialize_app(project_root):
+        print("❌ Application initialization failed!")
+        sys.exit(1)
+except Exception as e:
+    print(f"❌ Error during initialization: {e}")
+    sys.exit(1)
+
 # Create FastAPI app
 app = FastAPI(
     title="Desktop Search API",

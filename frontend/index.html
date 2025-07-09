@@ -688,7 +688,11 @@
         // Auto-detect protocol and port from current location
         const isSecure = window.location.protocol === 'https:';
         const currentPort = window.location.port;
+        // Always use localhost instead of 127.0.0.1 to avoid CORS issues
+        // Force localhost even if the current hostname is 127.0.0.1
         const API_BASE = `${isSecure ? 'https' : 'http'}://localhost:${currentPort}/api/v1`;
+        
+        console.log('API_BASE configured as:', API_BASE);
         
         // Global flag to prevent multiple simultaneous calls
         let isLoadingDirectories = false;
@@ -789,6 +793,9 @@
                 return;
             }
 
+            console.log('Adding directory:', newPath);
+            console.log('API URL:', `${API_BASE}/directories/add?path=${encodeURIComponent(newPath)}`);
+
             showMessage('Adding directory...', 'loading', 'directories-message');
 
             try {
@@ -799,7 +806,11 @@
                     }
                 });
 
+                console.log('Add directory response status:', response.status);
+                console.log('Add directory response headers:', response.headers);
+
                 const data = await response.json();
+                console.log('Add directory response data:', data);
 
                 if (response.ok) {
                     showMessage(`Directory "${newPath}" added successfully!`, 'success', 'directories-message');
@@ -809,6 +820,7 @@
                     showMessage(`Failed to add directory: ${data.detail}`, 'error', 'directories-message');
                 }
             } catch (error) {
+                console.error('Error adding directory:', error);
                 showMessage(`Error adding directory: ${error.message}`, 'error', 'directories-message');
             }
         }
@@ -823,9 +835,15 @@
             const container = document.getElementById('directories-container');
             container.innerHTML = '<div class="loading">Loading directories...</div>';
 
+            console.log('Loading directories from:', `${API_BASE}/directories/list`);
+
             try {
                 const response = await fetch(`${API_BASE}/directories/list`);
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
                 const data = await response.json();
+                console.log('Response data:', data);
 
                 if (response.ok) {
                     if (data.directories.length === 0) {
@@ -875,6 +893,7 @@
                     container.innerHTML = `<div class="error">Failed to load directories: ${data.detail}</div>`;
                 }
             } catch (error) {
+                console.error('Error loading directories:', error);
                 container.innerHTML = `<div class="error">Error loading directories: ${error.message}</div>`;
             } finally {
                 isLoadingDirectories = false;

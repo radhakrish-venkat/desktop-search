@@ -27,6 +27,16 @@ def main():
     
     print("🔐 Starting Desktop Search API with HTTPS...")
     
+    # Initialize application before starting
+    try:
+        from pkg.utils.initialization import initialize_app
+        if not initialize_app():
+            print("❌ Application initialization failed!")
+            sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error during initialization: {e}")
+        sys.exit(1)
+    
     # Check for certificates
     key_file, cert_file = check_certificates()
     if not key_file or not cert_file:

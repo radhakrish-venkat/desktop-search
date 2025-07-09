@@ -121,11 +121,11 @@ class TestCLI(unittest.TestCase):
         # Index the files
         self.runner.invoke(cli, ['index', self.test_dir])
         
-            # Run search command
+        # Run search command
         result = self.runner.invoke(cli, ['search', 'Python'])
-            
-            # Verify success
-            self.assertEqual(result.exit_code, 0)
+        
+        # Verify success
+        self.assertEqual(result.exit_code, 0)
         self.assertIn('Searching for:', result.output)
 
     def test_cli_search_with_load(self):
@@ -139,11 +139,11 @@ class TestCLI(unittest.TestCase):
         
         # Run search command
         result = self.runner.invoke(cli, ['search', 'programming'])
-            
-            # Verify success
-            self.assertEqual(result.exit_code, 0)
+        
+        # Verify success
+        self.assertEqual(result.exit_code, 0)
         self.assertIn('Searching for:', result.output)
-            
+        
     def test_cli_search_load_failure(self):
         """Test search command with load failure."""
         # Run search without any index
@@ -170,10 +170,10 @@ class TestCLI(unittest.TestCase):
         
         # Run search for something that won't be found
         result = self.runner.invoke(cli, ['search', 'nonexistentword'])
-            
-            # Verify success but no results
-            self.assertEqual(result.exit_code, 0)
-            self.assertIn('No matching documents found', result.output)
+        
+        # Verify success but no results
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('No matching documents found', result.output)
 
     def test_cli_search_with_limit(self):
         """Test search command with limit option."""
@@ -187,9 +187,9 @@ class TestCLI(unittest.TestCase):
         
         # Run search with limit
         result = self.runner.invoke(cli, ['search', 'programming', '--limit', '2'])
-            
+        
         # Verify success
-            self.assertEqual(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         self.assertIn('Searching for:', result.output)
 
     def test_cli_invalid_directory(self):
@@ -221,9 +221,9 @@ class TestCLI(unittest.TestCase):
         # Index the files
         self.runner.invoke(cli, ['index', self.test_dir])
         
-            # Run search command
-            result = self.runner.invoke(cli, ['search', 'python'])
-            
+        # Run search command
+        result = self.runner.invoke(cli, ['search', 'python'])
+        
         # Should handle gracefully
         self.assertEqual(result.exit_code, 0)
 
@@ -250,14 +250,14 @@ class TestCLI(unittest.TestCase):
         print("\n--- Testing CLI Search Command ---")
         result = self.runner.invoke(cli, ['search', 'programming'])
 
-            self.assertEqual(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         self.assertIn('Searching for:', result.output)
-            
+        
         # Test CLI stats command
         print("\n--- Testing CLI Stats Command ---")
         result = self.runner.invoke(cli, ['stats'])
 
-            self.assertEqual(result.exit_code, 0)
+        self.assertEqual(result.exit_code, 0)
         self.assertIn('Loading index statistics', result.output)
 
 
