@@ -16,7 +16,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from api.routers import indexer, searcher, google_drive, stats, directories, auth
+from api.routers import indexer, searcher, google_drive, stats, directories, auth, llm_search
 from api.models import APIResponse, ErrorResponse
 from api.config import settings
 from api.middleware.security import SecurityMiddleware
@@ -70,6 +70,7 @@ app.include_router(searcher.router, prefix="/api/v1/searcher", tags=["searcher"]
 app.include_router(google_drive.router, prefix="/api/v1/gdrive", tags=["google_drive"])
 app.include_router(stats.router, prefix="/api/v1/stats", tags=["stats"])
 app.include_router(directories.router, prefix="/api/v1/directories", tags=["directories"])
+app.include_router(llm_search.router, prefix="/api/v1/llm", tags=["llm_search"])
 
 # Mount static files for frontend (after API routes)
 frontend_path = os.path.join(project_root, "frontend")

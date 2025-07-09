@@ -8,6 +8,7 @@ from pkg.indexer.google_drive import build_google_drive_index, search_google_dri
 from pkg.utils.google_drive import setup_google_drive_credentials, GOOGLE_DRIVE_AVAILABLE
 from pkg.indexer.incremental import smart_semantic_index
 from pkg.utils.initialization import check_app_status, initialize_app, reinitialize_app
+from pkg.llm.local_llm import get_llm_manager
 
 # --- Main Click Group ---
 @click.group()
@@ -419,6 +420,257 @@ def search(query: str, limit: int, search_type: str, threshold: float):
             click.echo("No matching documents found.")
     except Exception as e:
         click.echo(f"Error during search: {e}", err=True)
+        raise click.Abort()
+
+# --- LLM Enhanced Search Commands ---
+@cli.group()
+def llm():
+    """
+    LLM-enhanced search commands using local models.
+    
+    Provides ChatGPT-like search enhancement capabilities while keeping everything private and local.
+    """
+    pass
+
+@llm.command()
+@click.argument('query')
+@click.option('--limit', '-n', default=10, help='Maximum number of results to show')
+@click.option('--search-type', '-t', type=click.Choice(['keyword', 'semantic', 'hybrid']), default='semantic', help='Type of search to perform')
+@click.option('--threshold', '-th', default=0.3, help='Similarity threshold (0-1) for semantic search')
+def enhanced_search(query: str, limit: int, search_type: str, threshold: float):
+    """
+    Enhanced search with LLM-generated insights.
+    
+    Performs a search and then uses a local LLM to provide insights,
+    summaries, and recommendations based on the search results.
+    """
+    click.echo(f"🔍 Enhanced search for: '{query}' (using local LLM)")
+    
+    try:
+        # Get LLM manager
+        llm_manager = get_llm_manager()
+        
+        # Check LLM availability
+        available_providers = llm_manager.detect_providers()
+        if not available_providers:
+            click.echo("❌ No local LLM providers available")
+            click.echo("💡 Install Ollama or LocalAI to enable LLM features")
+            click.echo("   - Ollama: https://ollama.ai/")
+            click.echo("   - LocalAI: https://localai.io/")
+            raise click.Abort()
+        
+        click.echo(f"✅ Found LLM providers: {', '.join(available_providers)}")
+        
+        # Perform search
+        indexer = SemanticIndexer(
+            persist_directory='data/chroma_db',
+            model_name='all-MiniLM-L6-v2'
+        )
+        
+        if search_type == 'keyword':
+            results = indexer.keyword_search(query=query, n_results=limit)
+        elif search_type == 'hybrid':
+            results = indexer.hybrid_search(query=query, n_results=limit)
+        else:  # semantic
+            results = indexer.semantic_search(query=query, n_results=limit, threshold=threshold)
+        
+        if not results:
+            click.echo("No matching documents found.")
+            return
+        
+        # Enhance with LLM
+        click.echo(f"\n🤖 Enhancing results with local LLM...")
+        enhanced_response = llm_manager.enhance_search_results(query, results)
+        
+        if enhanced_response.get("enhanced", False):
+            click.echo(f"\n📊 LLM Insights:")
+            click.echo("=" * 60)
+            click.echo(enhanced_response.get("llm_response", ""))
+            click.echo("=" * 60)
+            click.echo(f"Provider: {enhanced_response.get('provider', 'Unknown')}")
+        else:
+            click.echo(f"⚠️  LLM enhancement failed: {enhanced_response.get('message', 'Unknown error')}")
+        
+        # Show search results
+        click.echo(f"\n📄 Search Results ({len(results)} found):")
+        click.echo("-" * 40)
+        for i, result in enumerate(results[:limit], 1):
+            click.echo(f"{i}. File: {result.get('filepath', 'N/A')}")
+            click.echo(f"   Snippet: {result.get('snippet', 'No snippet available')[:200]}...")
+            if result.get('score'):
+                click.echo(f"   Score: {result.get('score', 0):.3f}")
+            click.echo()
+            
+    except Exception as e:
+        click.echo(f"Error during enhanced search: {e}", err=True)
+        raise click.Abort()
+
+@llm.command()
+@click.argument('question')
+@click.option('--max-results', '-n', default=10, help='Maximum number of search results to use')
+@click.option('--threshold', '-th', default=0.3, help='Similarity threshold (0-1) for search')
+def ask_question(question: str, max_results: int, threshold: float):
+    """
+    Ask a specific question and get LLM-generated answer based on search results.
+    
+    The LLM will search through your documents and provide a comprehensive
+    answer based on the relevant content found.
+    """
+    click.echo(f"❓ Question: '{question}'")
+    
+    try:
+        # Get LLM manager
+        llm_manager = get_llm_manager()
+        
+        # Check LLM availability
+        available_providers = llm_manager.detect_providers()
+        if not available_providers:
+            click.echo("❌ No local LLM providers available")
+            click.echo("💡 Install Ollama or LocalAI to enable LLM features")
+            raise click.Abort()
+        
+        click.echo(f"✅ Found LLM providers: {', '.join(available_providers)}")
+        
+        # Perform search to get relevant documents
+        indexer = SemanticIndexer(
+            persist_directory='data/chroma_db',
+            model_name='all-MiniLM-L6-v2'
+        )
+        
+        search_results = indexer.semantic_search(
+            query=question,
+            n_results=max_results,
+            threshold=threshold
+        )
+        
+        if not search_results:
+            click.echo("No relevant documents found to answer your question.")
+            return
+        
+        # Get LLM answer
+        click.echo(f"\n🤖 Generating answer with local LLM...")
+        answer_response = llm_manager.answer_question(question, search_results)
+        
+        if answer_response.get("answered", False):
+            click.echo(f"\n💡 Answer:")
+            click.echo("=" * 60)
+            click.echo(answer_response.get("answer", ""))
+            click.echo("=" * 60)
+            click.echo(f"Provider: {answer_response.get('provider', 'Unknown')}")
+            
+            sources = answer_response.get("sources", [])
+            if sources:
+                click.echo(f"\n📚 Sources ({len(sources)} documents):")
+                for i, source in enumerate(sources[:5], 1):
+                    click.echo(f"   {i}. {source}")
+                if len(sources) > 5:
+                    click.echo(f"   ... and {len(sources) - 5} more")
+        else:
+            click.echo(f"❌ Failed to answer question: {answer_response.get('message', 'Unknown error')}")
+            
+    except Exception as e:
+        click.echo(f"Error answering question: {e}", err=True)
+        raise click.Abort()
+
+@llm.command()
+@click.argument('query')
+@click.option('--max-results', '-n', default=20, help='Maximum number of search results to summarize')
+@click.option('--threshold', '-th', default=0.3, help='Similarity threshold (0-1) for search')
+def summarize(query: str, max_results: int, threshold: float):
+    """
+    Generate a summary of search results using local LLM.
+    
+    Searches for documents matching the query and then uses a local LLM
+    to generate a comprehensive summary of the key information found.
+    """
+    click.echo(f"📝 Generating summary for: '{query}'")
+    
+    try:
+        # Get LLM manager
+        llm_manager = get_llm_manager()
+        
+        # Check LLM availability
+        available_providers = llm_manager.detect_providers()
+        if not available_providers:
+            click.echo("❌ No local LLM providers available")
+            click.echo("💡 Install Ollama or LocalAI to enable LLM features")
+            raise click.Abort()
+        
+        click.echo(f"✅ Found LLM providers: {', '.join(available_providers)}")
+        
+        # Perform search
+        indexer = SemanticIndexer(
+            persist_directory='data/chroma_db',
+            model_name='all-MiniLM-L6-v2'
+        )
+        
+        search_results = indexer.semantic_search(
+            query=query,
+            n_results=max_results,
+            threshold=threshold
+        )
+        
+        if not search_results:
+            click.echo("No documents found to summarize.")
+            return
+        
+        # Generate summary
+        click.echo(f"\n🤖 Generating summary with local LLM...")
+        summary_response = llm_manager.generate_summary(search_results)
+        
+        if summary_response.get("summarized", False):
+            click.echo(f"\n📋 Summary:")
+            click.echo("=" * 60)
+            click.echo(summary_response.get("summary", ""))
+            click.echo("=" * 60)
+            click.echo(f"Provider: {summary_response.get('provider', 'Unknown')}")
+            click.echo(f"Documents analyzed: {summary_response.get('result_count', 0)}")
+        else:
+            click.echo(f"❌ Failed to generate summary: {summary_response.get('message', 'Unknown error')}")
+            
+    except Exception as e:
+        click.echo(f"Error generating summary: {e}", err=True)
+        raise click.Abort()
+
+@llm.command()
+def llm_status():
+    """
+    Check the status of local LLM providers.
+    """
+    click.echo("🔍 Checking local LLM providers...")
+    
+    try:
+        llm_manager = get_llm_manager()
+        status_info = llm_manager.get_provider_status()
+        
+        click.echo(f"\n📊 LLM Status:")
+        click.echo("=" * 40)
+        
+        active_provider = status_info.get("active_provider")
+        if active_provider:
+            click.echo(f"✅ Active Provider: {active_provider}")
+        else:
+            click.echo("❌ No active provider")
+        
+        available_providers = status_info.get("available_providers", [])
+        if available_providers:
+            click.echo(f"\n📋 Available Providers:")
+            for provider in available_providers:
+                status_icon = "✅" if provider.get("available", False) else "❌"
+                loaded_icon = "✅" if provider.get("loaded", False) else "❌"
+                click.echo(f"   {status_icon} {provider['name']} ({provider['type']}) - Loaded: {loaded_icon}")
+        else:
+            click.echo("\n❌ No LLM providers available")
+            click.echo("💡 Install one of the following:")
+            click.echo("   - Ollama: https://ollama.ai/")
+            click.echo("   - LocalAI: https://localai.io/")
+        
+        detected = status_info.get("detected_providers", [])
+        if detected:
+            click.echo(f"\n🔍 Detected Providers: {', '.join(detected)}")
+        
+    except Exception as e:
+        click.echo(f"Error checking LLM status: {e}", err=True)
         raise click.Abort()
 
 # --- Stats Command ---
