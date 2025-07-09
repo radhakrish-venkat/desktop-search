@@ -118,8 +118,8 @@ class TestIndexer(unittest.TestCase):
         self.assertIsNotNone(stats)
         if stats is not None:
             self.assertIn('stats', stats)
-            
-            # Verify document count
+        
+        # Verify document count
             self.assertEqual(stats['stats']['total_files'], 3)
             self.assertGreater(stats['stats']['total_chunks'], 0)
 

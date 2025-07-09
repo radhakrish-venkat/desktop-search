@@ -70,8 +70,8 @@ class TestIntegration(unittest.TestCase):
         self.assertIsNotNone(stats)
         if stats is not None:
             self.assertIn('stats', stats)
-            
-            # Verify all files were indexed
+        
+        # Verify all files were indexed
             self.assertEqual(stats['stats']['total_files'], 6)
             self.assertGreater(stats['stats']['total_chunks'], 0)
         

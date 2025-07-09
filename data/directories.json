@@ -1,0 +1,15 @@
+{
+  "directories": [
+    {
+      "path": "/Users/radhakrishnan.venkat/Downloads",
+      "name": "Downloads",
+      "status": "error",
+      "progress": 0.0,
+      "last_indexed": null,
+      "total_files": 0,
+      "indexed_files": 0,
+      "task_id": "dir_1752035271_Downloads"
+    }
+  ],
+  "last_updated": "2025-07-09T12:27:51.695268"
+}

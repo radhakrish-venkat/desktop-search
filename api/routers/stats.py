@@ -164,13 +164,13 @@ async def get_system_stats():
             disk = psutil.disk_usage('/')
             
             stats["system_info"] = {
-                "cpu_usage": cpu_percent,
-                "memory_usage": memory.percent,
-                "memory_available": memory.available,
-                "disk_usage": disk.percent,
-                "disk_free": disk.free,
-                "uptime": psutil.boot_time()
-            }
+            "cpu_usage": cpu_percent,
+            "memory_usage": memory.percent,
+            "memory_available": memory.available,
+            "disk_usage": disk.percent,
+            "disk_free": disk.free,
+            "uptime": psutil.boot_time()
+        }
         except ImportError:
             stats["system_info"] = {"note": "psutil not available for detailed system stats"}
         
