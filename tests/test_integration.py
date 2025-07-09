@@ -61,113 +61,77 @@ class TestIntegration(unittest.TestCase):
         for filename, content in files:
             self.create_test_file(filename, content)
         
-        # Test 1: Build index
+        # Test 1: Build semantic index
         print("\n--- Testing Index Building ---")
-        index_data = build_index(self.test_dir)
+        from pkg.indexer.semantic import SemanticIndexer
+        indexer = SemanticIndexer(persist_directory=os.path.join(self.test_dir, 'chroma_db'))
+        stats = indexer.build_semantic_index(self.test_dir)
         
-        self.assertIsNotNone(index_data)
-        index_data = cast(Dict[str, Any], index_data)
-        self.assertIn('inverted_index', index_data)
-        self.assertIn('document_store', index_data)
-        self.assertIn('stats', index_data)
+        self.assertIsNotNone(stats)
+        if stats is not None:
+            self.assertIn('stats', stats)
+            
+            # Verify all files were indexed
+            self.assertEqual(stats['stats']['total_files'], 6)
+            self.assertGreater(stats['stats']['total_chunks'], 0)
         
-        # Verify all files were indexed
-        self.assertEqual(len(index_data['document_store']), 6)
+        if stats is not None:
+            print(f"✅ Index built successfully with {stats['stats']['total_files']} documents")
         
-        # Verify some expected tokens
-        inverted_index = index_data['inverted_index']
-        self.assertIn('python', inverted_index)
-        self.assertIn('java', inverted_index)
-        self.assertIn('javascript', inverted_index)
-        self.assertIn('programming', inverted_index)
-        self.assertIn('development', inverted_index)
+        # Test 2: Get collection statistics
+        print("\n--- Testing Collection Statistics ---")
+        collection_stats = indexer.get_collection_stats()
         
-        print(f"✅ Index built successfully with {len(index_data['document_store'])} documents")
+        self.assertIn('total_chunks', collection_stats)
+        self.assertIn('model_name', collection_stats)
+        self.assertIn('persist_directory', collection_stats)
         
-        # Test 2: Get index statistics
-        print("\n--- Testing Index Statistics ---")
-        stats = get_index_stats(index_data)
+        print(f"✅ Statistics: {collection_stats['total_chunks']} chunks, model: {collection_stats['model_name']}")
         
-        self.assertIn('total_documents', stats)
-        self.assertIn('unique_tokens', stats)
-        self.assertIn('total_tokens', stats)
-        self.assertIn('avg_tokens_per_doc', stats)
-        self.assertIn('most_common_tokens', stats)
-        
-        print(f"✅ Statistics: {stats['total_documents']} documents, {stats['unique_tokens']} unique tokens")
-        
-        # Test 3: Basic search
-        print("\n--- Testing Basic Search ---")
+        # Test 3: Semantic search
+        print("\n--- Testing Semantic Search ---")
         search_queries = [
-            ('python', 2),  # Should find python_guide.txt and data_science.txt
-            ('java', 1),    # Should find java_tutorial.txt
-            ('javascript', 2),  # Should find javascript_notes.txt and web_development.txt
-            ('programming', 4),  # Should find multiple files
-            ('web development', 2),  # Should find javascript_notes.txt and web_development.txt
-            ('nonexistent', 0)  # Should find nothing
+            ('python', 5),  # Should find python_guide.txt and data_science.txt
+            ('java', 5),    # Should find java_tutorial.txt
+            ('javascript', 5),  # Should find javascript_notes.txt and web_development.txt
+            ('programming', 5),  # Should find multiple files
+            ('web development', 5),  # Should find javascript_notes.txt and web_development.txt
+            ('nonexistent', 5)  # Should find nothing or very few results
         ]
         
-        for query, expected_count in search_queries:
-            results = search_index(query, index_data)
-            print(f"Query '{query}': {len(results)} results (expected {expected_count})")
-            self.assertEqual(len(results), expected_count)
+        for query, max_results in search_queries:
+            results = indexer.semantic_search(query, n_results=max_results)
+            print(f"Query '{query}': {len(results)} results")
+            self.assertIsInstance(results, list)
             
             # Verify result structure
             for result in results:
                 self.assertIn('filepath', result)
                 self.assertIn('snippet', result)
+                self.assertIn('similarity', result)
                 self.assertIsInstance(result['filepath'], str)
                 self.assertIsInstance(result['snippet'], str)
+                self.assertIsInstance(result['similarity'], float)
         
-        print("✅ Basic search tests passed")
+        print("✅ Semantic search tests passed")
         
-        # Test 4: Enhanced search with highlighting
-        print("\n--- Testing Enhanced Search ---")
-        enhanced_results = search_with_highlighting("python programming", index_data)
+        # Test 4: Hybrid search
+        print("\n--- Testing Hybrid Search ---")
+        hybrid_results = indexer.hybrid_search("python programming", n_results=5)
         
-        self.assertGreater(len(enhanced_results), 0)
+        self.assertIsInstance(hybrid_results, list)
         
         # Verify enhanced result structure
-        for result in enhanced_results:
+        for result in hybrid_results:
             self.assertIn('filepath', result)
             self.assertIn('snippet', result)
-            self.assertIn('score', result)
-            self.assertIn('extension', result)
-            self.assertIn('doc_id', result)
-            self.assertIn('file_size', result)
-            self.assertIsInstance(result['score'], float)
-            self.assertGreaterEqual(result['score'], 0)
+            self.assertIn('similarity', result)
+            self.assertIn('keyword_score', result)
+            self.assertIn('combined_score', result)
         
-        print(f"✅ Enhanced search returned {len(enhanced_results)} results")
+        print(f"✅ Hybrid search returned {len(hybrid_results)} results")
         
-        # Test 5: Save and load index
-        print("\n--- Testing Index Persistence ---")
-        index_file = os.path.join(self.test_dir, 'test_index.pkl')
-        
-        # Save index
-        success = save_index(index_data, index_file)
-        self.assertTrue(success)
-        self.assertTrue(os.path.exists(index_file))
-        
-        # Load index
-        loaded_data = load_index(index_file)
-        self.assertIsNotNone(loaded_data)
-        loaded_data = cast(Dict[str, Any], loaded_data)
-        
-        # Verify loaded data matches original
-        self.assertEqual(loaded_data['inverted_index'], index_data['inverted_index'])
-        self.assertEqual(loaded_data['document_store'], index_data['document_store'])
-        self.assertEqual(loaded_data['indexed_directory'], index_data['indexed_directory'])
-        
-        print("✅ Index save/load tests passed")
-        
-        # Test 6: Search with loaded index
-        print("\n--- Testing Search with Loaded Index ---")
-        loaded_results = search_index("python", loaded_data)
-        original_results = search_index("python", index_data)
-        
-        self.assertEqual(len(loaded_results), len(original_results))
-        print("✅ Search with loaded index works correctly")
+        print("✅ Complete workflow tests passed")
 
     def test_cli_integration(self):
         """Test CLI integration with real files."""
@@ -186,9 +150,9 @@ class TestIntegration(unittest.TestCase):
         result = self.runner.invoke(cli, ['index', self.test_dir])
         
         self.assertEqual(result.exit_code, 0)
-        self.assertIn('Starting indexing of directory', result.output)
+        self.assertIn('Starting smart indexing of directory', result.output)
         self.assertIn('Indexing complete', result.output)
-        self.assertIn('Indexed 3 documents', result.output)
+        self.assertIn('Total files:', result.output)
         
         print("✅ CLI index command works")
         

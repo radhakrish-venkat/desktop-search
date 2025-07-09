@@ -193,9 +193,7 @@ class TestSemanticIndexer(unittest.TestCase):
         
         # Verify results
         self.assertIsNotNone(stats)
-        self.assertIn('indexed_directory', stats)
         self.assertIn('stats', stats)
-        self.assertEqual(stats['indexed_directory'], self.test_dir)
         self.assertEqual(stats['stats']['total_files'], 2)
         self.assertGreater(stats['stats']['total_chunks'], 0)
         

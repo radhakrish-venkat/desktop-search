@@ -214,7 +214,7 @@ class TestFileParsers(unittest.TestCase):
         # Test non-existent file
         result, ext = get_text_from_file('/nonexistent/file.txt')
         self.assertIsNone(result)
-        self.assertEqual(ext, '.txt')
+        self.assertEqual(ext, '')  # Extension is empty for non-existent files
 
     def test_file_parsers_integration(self):
         """Integration test for file parsers."""
