@@ -126,96 +126,77 @@ class SemanticIndexer:
             "file_size": os.path.getsize(filepath) if os.path.exists(filepath) else 0
         }
     
-    def build_semantic_index(self, directory_path: str) -> Optional[Dict[str, Any]]:
+    def build_semantic_index(self, directory_path: str, progress_callback=None) -> Optional[Dict[str, Any]]:
         """
         Build semantic index for the specified directory.
-        
         Args:
             directory_path: Path to directory to index
-            
+            progress_callback: Optional function(processed_files, total_files, filepath)
         Returns:
             Dictionary with indexing statistics
         """
         if not os.path.isdir(directory_path):
             logger.error(f"Directory not found at {directory_path}")
             return None
-        
         logger.info(f"Starting semantic indexing of directory: {directory_path}")
-        
         # Clear existing collection by deleting all documents
         try:
-            # Get all document IDs and delete them
             all_docs = self.collection.get()
             if all_docs and all_docs.get('ids'):
                 self.collection.delete(ids=all_docs['ids'])
         except Exception as e:
             logger.info(f"Collection was empty or could not be cleared: {e}")
-        
         processed_files = 0
         skipped_files = 0
         total_chunks = 0
-        
+        # Count total files to process
+        all_files = []
         for root, dirs, files in os.walk(directory_path):
-            # Skip directories that match our patterns
             dirs[:] = [d for d in dirs if not self._should_skip_file(os.path.join(root, d))]
-            
             for filename in files:
                 filepath = os.path.join(root, filename)
-                
-                # Skip files that match our patterns
-                if self._should_skip_file(filepath):
+                if not self._should_skip_file(filepath):
+                    all_files.append(filepath)
+        total_files = len(all_files)
+        for filepath in all_files:
+            try:
+                extracted_text, file_ext = get_text_from_file(filepath)
+                if extracted_text and extracted_text.strip():
+                    chunks = self._chunk_text(extracted_text)
+                    if chunks:
+                        documents = []
+                        metadatas = []
+                        ids = []
+                        for i, chunk in enumerate(chunks):
+                            chunk_id = f"{filepath}_{i}"
+                            metadata = self._extract_metadata(filepath, i, len(chunks))
+                            metadata['fulltext'] = chunk
+                            documents.append(chunk)
+                            metadatas.append(metadata)
+                            ids.append(chunk_id)
+                        self.collection.add(
+                            documents=documents,
+                            metadatas=metadatas,
+                            ids=ids
+                        )
+                        total_chunks += len(chunks)
+                        processed_files += 1
+                else:
                     skipped_files += 1
-                    continue
-                
-                try:
-                    extracted_text, file_ext = get_text_from_file(filepath)
-                    
-                    if extracted_text and extracted_text.strip():
-                        # Chunk the text
-                        chunks = self._chunk_text(extracted_text)
-                        
-                        if chunks:
-                            # Prepare data for ChromaDB
-                            documents = []
-                            metadatas = []
-                            ids = []
-                            
-                            for i, chunk in enumerate(chunks):
-                                chunk_id = f"{filepath}_{i}"
-                                metadata = self._extract_metadata(filepath, i, len(chunks))
-                                
-                                documents.append(chunk)
-                                metadatas.append(metadata)
-                                ids.append(chunk_id)
-                            
-                            # Add to ChromaDB collection
-                            self.collection.add(
-                                documents=documents,
-                                metadatas=metadatas,
-                                ids=ids
-                            )
-                            
-                            total_chunks += len(chunks)
-                            processed_files += 1
-                            
-                            if processed_files % 50 == 0:
-                                logger.info(f"Processed {processed_files} files, {total_chunks} chunks...")
-                        
-                except Exception as e:
-                    logger.warning(f"Error processing file {filepath}: {e}")
-                    skipped_files += 1
-                    continue
-        
-        logger.info(f"Semantic indexing complete. Processed {processed_files} files, {total_chunks} chunks, skipped {skipped_files} files.")
-        
+            except Exception as e:
+                logger.error(f"Error processing file {filepath}: {e}")
+                skipped_files += 1
+            if progress_callback:
+                progress_callback(processed_files, total_files, filepath)
         return {
-            'indexed_directory': directory_path,
             'stats': {
-                'total_files': processed_files,
+                'total_files': total_files,
+                'new_files': processed_files,
+                'modified_files': 0,
+                'deleted_files': 0,
                 'skipped_files': skipped_files,
                 'total_chunks': total_chunks,
-                'model_name': self.model_name,
-                'persist_directory': self.persist_directory
+                'indexing_type': 'semantic'
             }
         }
     
@@ -313,6 +294,29 @@ class SemanticIndexer:
         keyword_results.sort(key=lambda x: x['combined_score'], reverse=True)
         
         return keyword_results[:n_results]
+    
+    def keyword_search(self, query: str, n_results: int = 10) -> List[Dict[str, Any]]:
+        """
+        Perform keyword (substring) search over all stored chunks in ChromaDB.
+        """
+        results = []
+        all_docs = self.collection.get()
+        if not all_docs or not all_docs.get('metadatas'):
+            return []
+        documents = all_docs.get('documents') or []
+        metadatas = all_docs.get('metadatas') or []
+        for doc, meta in zip(documents, metadatas):
+            fulltext = meta.get('fulltext', '')
+            if not isinstance(fulltext, str):
+                continue
+            if query.lower() in fulltext.lower():
+                if isinstance(meta, dict):
+                    result = meta.copy()
+                else:
+                    result = dict(meta)
+                result['snippet'] = fulltext
+                results.append(result)
+        return results[:n_results]
     
     def get_collection_stats(self) -> Dict[str, Any]:
         """Get statistics about the ChromaDB collection."""

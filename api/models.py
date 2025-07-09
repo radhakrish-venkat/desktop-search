@@ -38,18 +38,12 @@ class SearchRequest(BaseModel):
     search_type: SearchType = Field(SearchType.KEYWORD, description="Type of search to perform")
     limit: int = Field(10, ge=1, le=100, description="Maximum number of results")
     threshold: float = Field(0.3, ge=0.0, le=1.0, description="Similarity threshold for semantic search")
-    directory: Optional[str] = Field(None, description="Directory to search in")
-    index_path: Optional[str] = Field(None, description="Path to index file")
-    db_path: Optional[str] = Field(None, description="ChromaDB path for semantic search")
 
 class IndexRequest(BaseModel):
     """Index request model"""
-    directory: str = Field(..., description="Directory to index")
-    index_type: IndexType = Field(IndexType.FULL, description="Type of indexing to perform")
     force_full: bool = Field(False, description="Force full indexing even if incremental is possible")
-    save_path: Optional[str] = Field(None, description="Custom path to save index")
     model: str = Field("all-MiniLM-L6-v2", description="Sentence transformer model for semantic indexing")
-    db_path: Optional[str] = Field(None, description="ChromaDB path for semantic indexing")
+    directory: str = Field(..., description="Directory to index")
 
 class GoogleDriveIndexRequest(BaseModel):
     """Google Drive index request model"""
@@ -119,4 +113,51 @@ class StatsResponse(BaseModel):
     """Statistics response model"""
     index_stats: Optional[IndexStats] = None
     semantic_stats: Optional[Dict[str, Any]] = None
-    hybrid_stats: Optional[Dict[str, Any]] = None 
+    hybrid_stats: Optional[Dict[str, Any]] = None
+
+class DirectoryInfo(BaseModel):
+    """Directory information model"""
+    path: str
+    name: str
+    status: str = "not_indexed"  # not_indexed, indexing, indexed, error
+    progress: float = 0.0
+    last_indexed: Optional[str] = None
+    total_files: int = 0
+    indexed_files: int = 0
+    task_id: Optional[str] = None
+
+class DirectoryList(BaseModel):
+    """List of indexed directories"""
+    directories: List[DirectoryInfo]
+
+class DirectoryStatus(BaseModel):
+    """Directory indexing status"""
+    path: str
+    status: str
+    progress: float = 0.0
+    message: str = ""
+    task_id: Optional[str] = None
+    total_files: int = 0
+    indexed_files: int = 0
+
+class APIKeyCreate(BaseModel):
+    """API key creation request model"""
+    name: str = Field(..., description="Name for the API key")
+    description: Optional[str] = Field(None, description="Description of the API key")
+    expires_days: Optional[int] = Field(None, ge=1, le=365, description="Days until expiration")
+    permissions: Optional[List[str]] = Field(None, description="List of permissions")
+    admin_key: Optional[str] = Field(None, description="Admin key for authentication")
+
+class APIKeyInfo(BaseModel):
+    """API key information model"""
+    id: str
+    name: str
+    description: Optional[str] = None
+    created_at: str
+    expires_at: Optional[str] = None
+    permissions: List[str]
+    is_active: bool
+
+class APIKeyList(BaseModel):
+    """API key list response model"""
+    keys: List[APIKeyInfo] 

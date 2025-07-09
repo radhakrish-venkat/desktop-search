@@ -49,90 +49,53 @@ def convert_result_types(result: dict) -> dict:
 
 def get_default_index_path(directory: str) -> str:
     """Get the default index file path for a directory"""
-    # Use chroma_db folder for all index files
+    # Use data folder for all index files - everything in one organized location
     directory_name = os.path.basename(directory.rstrip('/'))
-    return os.path.join(settings.DEFAULT_CHROMA_DB_PATH, f"{directory_name}_index.pkl")
+    return os.path.join(settings.DEFAULT_DATA_PATH, f"{directory_name}_index.pkl")
 
 @router.post("/search", response_model=SearchResponse)
 async def search_endpoint(request: SearchRequest):
     """
-    Search indexed documents
+    Search indexed documents (global index only)
     """
     try:
         start_time = time.time()
-        
         # Determine search type and perform search
         if request.search_type.value == "semantic":
-            # Semantic search
-            if not request.db_path:
-                request.db_path = settings.DEFAULT_CHROMA_DB_PATH
-            
             indexer = SemanticIndexer(
-                persist_directory=request.db_path,
+                persist_directory=settings.DEFAULT_CHROMA_DB_PATH,
                 model_name=settings.DEFAULT_MODEL
             )
-            
             results = indexer.semantic_search(
                 query=request.query,
                 n_results=request.limit,
                 threshold=request.threshold
             )
-            
-            # Convert results to SearchResult format
-            search_results = []
-            for result in results:
-                converted = convert_result_types(result)
-                search_results.append(SearchResult(**converted))
-                
+            search_results = [SearchResult(**convert_result_types(result)) for result in results]
         elif request.search_type.value == "hybrid":
-            # Hybrid search
-            if not request.db_path:
-                request.db_path = settings.DEFAULT_CHROMA_DB_PATH
-            
             indexer = HybridSemanticIndexer(
-                persist_directory=request.db_path,
+                persist_directory=settings.DEFAULT_CHROMA_DB_PATH,
                 model_name=settings.DEFAULT_MODEL
             )
-            
             results = indexer.hybrid_search(
                 query=request.query,
                 n_results=request.limit,
                 semantic_weight=0.7
             )
-            
-            # Convert results to SearchResult format
-            search_results = []
-            for result in results:
-                converted = convert_result_types(result)
-                search_results.append(SearchResult(**converted))
-                
+            search_results = [SearchResult(**convert_result_types(result)) for result in results]
         else:
-            # Keyword search
-            # Load index
-            index_data = None
-            if request.index_path:
-                index_data = load_index(request.index_path)
-            elif request.directory:
-                default_index_path = get_default_index_path(request.directory)
-                index_data = load_index(default_index_path)
-            else:
-                raise HTTPException(status_code=400, detail="Either index_path or directory must be provided for keyword search")
-            
-            if not index_data:
-                raise HTTPException(status_code=404, detail="Index not found")
-            
-            # Perform search
-            raw_results = search_index(request.query, index_data)
-            
-            # Convert results to SearchResult format
-            search_results = []
-            for result in raw_results[:request.limit]:
-                converted = convert_result_types(result)
-                search_results.append(SearchResult(**converted))
-        
+            # Keyword search using ChromaDB
+            indexer = SemanticIndexer(
+                persist_directory=settings.DEFAULT_CHROMA_DB_PATH,
+                model_name=settings.DEFAULT_MODEL
+            )
+            results = indexer.keyword_search(
+                query=request.query,
+                n_results=request.limit
+            )
+            search_results = [SearchResult(**convert_result_types(result)) for result in results]
         end_time = time.time()
         search_time_ms = (end_time - start_time) * 1000
-        
         return SearchResponse(
             query=request.query,
             search_type=request.search_type,
@@ -140,7 +103,6 @@ async def search_endpoint(request: SearchRequest):
             total_results=len(search_results),
             search_time_ms=search_time_ms
         )
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 

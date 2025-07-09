@@ -1,15 +1,17 @@
 # Desktop Search FastAPI Backend
 
-This FastAPI backend provides a REST API for the Desktop Search application, enabling web-based access to document indexing and search capabilities.
+This FastAPI backend provides a REST API for the Desktop Search application, enabling web-based access to document indexing and search capabilities with a unified ChromaDB approach.
 
 ## Features
 
-- **RESTful API**: Full REST API for all desktop search functionality
-- **Multiple Search Types**: Keyword, semantic, and hybrid search
-- **Background Processing**: Support for long-running indexing tasks
+- **Unified ChromaDB Storage**: All search types (keyword, semantic, hybrid) use a single ChromaDB instance
+- **Directory Management**: Add, remove, and refresh multiple directories with real-time progress tracking
+- **Multiple Search Types**: Keyword, semantic, and hybrid search across all indexed directories
+- **Background Processing**: Support for long-running indexing tasks with progress updates
 - **CORS Support**: Ready for frontend integration (React, Vue, etc.)
 - **Auto-generated Documentation**: Interactive API docs with Swagger UI
 - **Type Safety**: Full Pydantic model validation
+- **Real-time Progress**: Live progress tracking for indexing operations
 
 ## Quick Start
 
@@ -22,179 +24,133 @@ pip install -r requirements.txt
 ### 2. Start the API Server
 
 ```bash
-# Option 1: Using the startup script
+# Option 1: Using uvicorn directly
+uvicorn api.main:app --host 0.0.0.0 --port 8443 --reload
+
+# Option 2: Using the startup script
 python start_api.py
 
-# Option 2: Using uvicorn directly
-uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+# Option 3: Using HTTPS (recommended)
+python start_https.py
 ```
 
 ### 3. Access the API
 
-- **API Documentation**: http://localhost:8000/docs
-- **Alternative Docs**: http://localhost:8000/redoc
-- **Health Check**: http://localhost:8000/health
-- **API Base URL**: http://localhost:8000/api/v1
+- **API Documentation**: https://localhost:8443/docs
+- **Alternative Docs**: https://localhost:8443/redoc
+- **Health Check**: https://localhost:8443/health
+- **API Base URL**: https://localhost:8443/api/v1
+- **Web Interface**: https://localhost:8443
 
 ## API Endpoints
 
-### Indexer Endpoints
+### Directory Management Endpoints
 
-#### Build Index
+#### Add Directory
 ```http
-POST /api/v1/indexer/build
+POST /api/v1/directories/add?path=/path/to/documents
 Content-Type: application/json
-
-{
-  "directory": "/path/to/documents",
-  "index_type": "full",
-  "force_full": false,
-  "save_path": null,
-  "model": "all-MiniLM-L6-v2",
-  "db_path": null
-}
 ```
 
-#### Build Google Drive Index
+#### List Directories
 ```http
-POST /api/v1/indexer/gdrive
+GET /api/v1/directories/list
+```
+
+#### Get Directory Status
+```http
+GET /api/v1/directories/status/{path}
+```
+
+#### Refresh Directory (Re-index)
+```http
+POST /api/v1/directories/refresh/{path}
 Content-Type: application/json
-
-{
-  "folder_id": "optional_folder_id",
-  "query": "optional_query_filter",
-  "save_path": null
-}
 ```
 
-#### Build Hybrid Index
+#### Remove Directory
 ```http
-POST /api/v1/indexer/hybrid
-Content-Type: application/json
-
-{
-  "directory": "/path/to/documents",
-  "gdrive_folder_id": "optional_folder_id",
-  "gdrive_query": "optional_query_filter",
-  "save_path": null,
-  "force_full": false,
-  "model": "all-MiniLM-L6-v2",
-  "db_path": null
-}
+DELETE /api/v1/directories/remove/{path}
 ```
 
-#### Background Indexing
-```http
-POST /api/v1/indexer/build/background
-Content-Type: application/json
+### Search Endpoints
 
-{
-  "directory": "/path/to/documents",
-  "index_type": "semantic",
-  "force_full": false
-}
-```
-
-#### Check Task Status
-```http
-GET /api/v1/indexer/task/{task_id}
-```
-
-### Searcher Endpoints
-
-#### Search Documents
+#### Search Documents (Unified)
 ```http
 POST /api/v1/searcher/search
 Content-Type: application/json
 
 {
   "query": "search query",
-  "search_type": "keyword",
-  "limit": 10,
-  "threshold": 0.3,
-  "directory": "/path/to/documents",
-  "index_path": null,
-  "db_path": null
-}
-```
-
-#### Search Google Drive
-```http
-POST /api/v1/searcher/gdrive
-Content-Type: application/json
-
-{
-  "query": "search query",
-  "search_type": "keyword",
+  "search_type": "semantic",
   "limit": 10,
   "threshold": 0.3
 }
 ```
 
-#### Get Search Suggestions
-```http
-GET /api/v1/searcher/suggestions?query=partial&limit=5
-```
-
-### Google Drive Endpoints
-
-#### Setup Google Drive
-```http
-POST /api/v1/gdrive/setup
-Content-Type: application/json
-
-{
-  "credentials_path": "/path/to/credentials.json"
-}
-```
-
-#### Check Google Drive Status
-```http
-GET /api/v1/gdrive/status
-```
-
-#### Index Google Drive
-```http
-POST /api/v1/gdrive/index
-Content-Type: application/json
-
-{
-  "folder_id": "optional_folder_id",
-  "query": "optional_query_filter",
-  "save_path": null
-}
-```
-
-#### Search Google Drive
-```http
-GET /api/v1/gdrive/search?query=search_query&folder_id=optional&limit=10
-```
+**Search Types:**
+- `semantic` - Semantic similarity search (default)
+- `keyword` - Keyword/substring search
+- `hybrid` - Combines semantic and keyword matching
 
 ### Statistics Endpoints
-
-#### Get Index Statistics
-```http
-GET /api/v1/stats/index?directory=/path/to/documents&index_path=null
-```
-
-#### Get Semantic Index Statistics
-```http
-GET /api/v1/stats/semantic?db_path=./chroma_db
-```
-
-#### Get Hybrid Index Statistics
-```http
-GET /api/v1/stats/hybrid?db_path=./chroma_db
-```
 
 #### Get System Statistics
 ```http
 GET /api/v1/stats/system
 ```
 
-#### Get Performance Statistics
-```http
-GET /api/v1/stats/performance
+Returns comprehensive statistics about the unified index and directory management system.
+
+## Response Models
+
+### Search Response
+```json
+{
+  "total_results": 5,
+  "search_time_ms": 45.2,
+  "results": [
+    {
+      "filepath": "/path/to/document.pdf",
+      "filename": "document.pdf",
+      "snippet": "Relevant text snippet...",
+      "score": 0.85,
+      "file_type": "pdf",
+      "file_size": 1024000
+    }
+  ]
+}
+```
+
+### Directory Response
+```json
+{
+  "directories": [
+    {
+      "path": "/path/to/documents",
+      "name": "documents",
+      "status": "indexed",
+      "indexed_files": 150,
+      "total_files": 150,
+      "progress": 1.0,
+      "last_indexed": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+### System Statistics Response
+```json
+{
+  "data": {
+    "total_chunks": 1500,
+    "model_name": "all-MiniLM-L6-v2",
+    "persist_directory": "./data/chroma_db",
+    "total_directories": 3,
+    "indexed_directories": 2,
+    "total_files": 300
+  }
+}
 ```
 
 ## Frontend Integration
@@ -206,42 +162,95 @@ The API is configured with CORS support for common frontend development servers:
 - React (localhost:3000)
 - Vue (localhost:8080)
 - Vite (localhost:5173)
+- Any localhost port for development
 
 ### Example Frontend Usage
 
 ```javascript
+const API_BASE = 'https://localhost:8443/api/v1';
+
 // Search documents
-const searchResponse = await fetch('http://localhost:8000/api/v1/searcher/search', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    query: 'machine learning',
-    search_type: 'semantic',
-    limit: 10,
-    threshold: 0.3
-  })
-});
+async function searchDocuments(query, searchType = 'semantic') {
+  const response = await fetch(`${API_BASE}/searcher/search`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: query,
+      search_type: searchType,
+      limit: 10,
+      threshold: 0.3
+    })
+  });
 
-const searchData = await searchResponse.json();
-console.log(searchData.results);
+  const data = await response.json();
+  return data;
+}
 
-// Build index
-const indexResponse = await fetch('http://localhost:8000/api/v1/indexer/build', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    directory: '/path/to/documents',
-    index_type: 'semantic',
-    force_full: false
-  })
-});
+// Add directory
+async function addDirectory(path) {
+  const response = await fetch(`${API_BASE}/directories/add?path=${encodeURIComponent(path)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
 
-const indexData = await indexResponse.json();
-console.log(indexData.stats);
+  const data = await response.json();
+  return data;
+}
+
+// List directories
+async function listDirectories() {
+  const response = await fetch(`${API_BASE}/directories/list`);
+  const data = await response.json();
+  return data;
+}
+
+// Refresh directory
+async function refreshDirectory(path) {
+  const response = await fetch(`${API_BASE}/directories/refresh/${encodeURIComponent(path)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
+
+  const data = await response.json();
+  return data;
+}
+
+// Get system statistics
+async function getSystemStats() {
+  const response = await fetch(`${API_BASE}/stats/system`);
+  const data = await response.json();
+  return data;
+}
+```
+
+### Real-time Progress Tracking
+
+For real-time progress updates during indexing:
+
+```javascript
+// Poll for directory updates during indexing
+function startProgressPolling() {
+  const interval = setInterval(async () => {
+    const directories = await listDirectories();
+    
+    // Check if any directory is still indexing
+    const indexingDirs = directories.directories.filter(dir => dir.status === 'indexing');
+    
+    if (indexingDirs.length === 0) {
+      clearInterval(interval);
+      console.log('Indexing complete!');
+    } else {
+      // Update UI with progress
+      updateProgressUI(directories.directories);
+    }
+  }, 2000); // Poll every 2 seconds
+}
 ```
 
 ## Configuration
@@ -253,13 +262,12 @@ You can configure the API using environment variables:
 ```bash
 # Server settings
 HOST=0.0.0.0
-PORT=8000
+PORT=8443
 DEBUG=False
 
-# Default paths
-CHROMA_DB_PATH=./chroma_db
-INDEX_PATH=./index.pkl
-METADATA_PATH=./index_metadata.json
+# Default paths (unified ChromaDB approach)
+DATA_PATH=./data
+CHROMA_DB_PATH=./data/chroma_db
 
 # Search settings
 DEFAULT_SEARCH_LIMIT=10
@@ -277,7 +285,7 @@ MAX_BACKGROUND_TASKS=5
 
 ### Configuration File
 
-The configuration is managed in `api/config.py` and can be extended for additional settings.
+The configuration is managed in `api/config.py` and uses Pydantic settings for type safety.
 
 ## Development
 
@@ -291,9 +299,8 @@ api/
 ├── models.py            # Pydantic models for request/response
 └── routers/
     ├── __init__.py
-    ├── indexer.py       # Indexing endpoints
+    ├── directories.py   # Directory management endpoints
     ├── searcher.py      # Search endpoints
-    ├── google_drive.py  # Google Drive endpoints
     └── stats.py         # Statistics endpoints
 ```
 
@@ -307,15 +314,22 @@ api/
 
 ```bash
 # Run the API server
-python start_api.py
+uvicorn api.main:app --host 0.0.0.0 --port 8443 --reload
 
 # Test endpoints using curl
-curl -X GET http://localhost:8000/health
+curl -X GET http://localhost:8443/health
 
 # Test search endpoint
-curl -X POST http://localhost:8000/api/v1/searcher/search \
+curl -X POST http://localhost:8443/api/v1/searcher/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "test", "search_type": "keyword", "limit": 5}'
+  -d '{"query": "test", "search_type": "semantic", "limit": 5}'
+
+# Test directory management
+curl -X GET http://localhost:8443/api/v1/directories/list
+
+# Test adding a directory
+curl -X POST "http://localhost:8443/api/v1/directories/add?path=/path/to/documents" \
+  -H "Content-Type: application/json"
 ```
 
 ## Production Deployment
@@ -324,7 +338,7 @@ curl -X POST http://localhost:8000/api/v1/searcher/search \
 
 ```bash
 pip install gunicorn
-gunicorn api.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+gunicorn api.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8443
 ```
 
 ### Using Docker
@@ -337,9 +351,9 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY . .
-EXPOSE 8000
+EXPOSE 8443
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8443"]
 ```
 
 ### Environment Configuration
@@ -349,9 +363,40 @@ For production, set appropriate environment variables:
 ```bash
 export DEBUG=False
 export HOST=0.0.0.0
-export PORT=8000
+export PORT=8443
 export ALLOWED_ORIGINS="https://yourdomain.com"
 ```
+
+## Key Features
+
+### Unified ChromaDB Storage
+
+- All search types (keyword, semantic, hybrid) use a single ChromaDB instance
+- Consistent data storage in `data/chroma_db`
+- No separate index files or pickle files
+- Simplified data management
+
+### Directory Management
+
+- Add multiple directories to the index
+- Real-time progress tracking during indexing
+- Individual directory refresh capabilities
+- Directory status monitoring
+- Remove directories from the index
+
+### Real-time Progress
+
+- Live progress bars during indexing
+- File count updates in real-time
+- Background task status tracking
+- Polling-based progress updates
+
+### Search Capabilities
+
+- **Semantic Search**: Find related content using embeddings
+- **Keyword Search**: Traditional substring matching
+- **Hybrid Search**: Combines semantic and keyword approaches
+- **Unified Results**: Consistent ranking across all search types
 
 ## Troubleshooting
 
@@ -361,10 +406,18 @@ export ALLOWED_ORIGINS="https://yourdomain.com"
 2. **CORS Issues**: Check the `ALLOWED_ORIGINS` configuration
 3. **File Permissions**: Ensure the API has read access to indexed directories
 4. **Memory Issues**: Adjust file size limits and background task limits
+5. **ChromaDB Issues**: Check that the `data/chroma_db` directory is writable
 
 ### Logs
 
 The API uses standard Python logging. Check logs for detailed error information.
+
+### Directory Status Issues
+
+- **"not_indexed"**: Directory exists but hasn't been indexed yet
+- **"indexing"**: Directory is currently being indexed
+- **"indexed"**: Directory has been successfully indexed
+- **"error"**: An error occurred during indexing
 
 ## Next Steps
 
@@ -373,4 +426,6 @@ The API uses standard Python logging. Check logs for detailed error information.
 - [ ] Add caching layer (Redis)
 - [ ] Create comprehensive test suite
 - [ ] Add monitoring and metrics
-- [ ] Implement WebSocket support for real-time updates 
+- [ ] Implement WebSocket support for real-time updates
+- [ ] Add Google Drive integration endpoints
+- [ ] Implement search result caching 

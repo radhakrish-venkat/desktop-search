@@ -6,6 +6,7 @@ Provides REST endpoints for indexing and searching documents
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 import uvicorn
 import os
 import sys
@@ -15,9 +16,11 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from api.routers import indexer, searcher, google_drive, stats
+from api.routers import indexer, searcher, google_drive, stats, directories, auth
 from api.models import APIResponse, ErrorResponse
 from api.config import settings
+from api.middleware.security import SecurityMiddleware
+from api.middleware.rate_limit import rate_limit_middleware
 
 # Create FastAPI app
 app = FastAPI(
@@ -28,20 +31,35 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Add security middleware
+app.add_middleware(SecurityMiddleware)
+
 # Add CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=["*"] if settings.DEBUG else settings.ALLOWED_ORIGINS + (settings.PRODUCTION_ORIGINS if not settings.DEBUG else []),
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
+# Add rate limiting middleware
+@app.middleware("http")
+async def rate_limit(request, call_next):
+    return await rate_limit_middleware(request, call_next)
+
 # Include routers
-app.include_router(indexer.router, prefix="/api/v1/indexer", tags=["Indexer"])
-app.include_router(searcher.router, prefix="/api/v1/searcher", tags=["Searcher"])
-app.include_router(google_drive.router, prefix="/api/v1/gdrive", tags=["Google Drive"])
-app.include_router(stats.router, prefix="/api/v1/stats", tags=["Statistics"])
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
+app.include_router(indexer.router, prefix="/api/v1/indexer", tags=["indexer"])
+app.include_router(searcher.router, prefix="/api/v1/searcher", tags=["searcher"])
+app.include_router(google_drive.router, prefix="/api/v1/gdrive", tags=["google_drive"])
+app.include_router(stats.router, prefix="/api/v1/stats", tags=["stats"])
+app.include_router(directories.router, prefix="/api/v1/directories", tags=["directories"])
+
+# Mount static files for frontend (after API routes)
+frontend_path = os.path.join(project_root, "frontend")
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
 # Health check endpoint
 @app.get("/health", response_model=APIResponse)
@@ -53,10 +71,12 @@ async def health_check():
         data={"status": "healthy"}
     )
 
-# Root endpoint
-@app.get("/", response_model=APIResponse)
-async def root():
-    """Root endpoint with API information"""
+
+
+# API info endpoint (since root serves frontend)
+@app.get("/api/info", response_model=APIResponse)
+async def api_info():
+    """API information endpoint"""
     return APIResponse(
         success=True,
         message="Desktop Search API",
@@ -71,17 +91,43 @@ async def root():
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """Global exception handler for unhandled errors"""
-    return ErrorResponse(
-        success=False,
-        message="Internal server error",
-        error=str(exc)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "message": "Internal server error",
+            "error": str(exc)
+        }
     )
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "api.main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=settings.DEBUG,
-        log_level="info"
-    ) 
+    # Check if SSL is enabled
+    if settings.SSL_ENABLED:
+        # Verify SSL certificates exist
+        import os.path
+        if not os.path.exists(settings.SSL_KEY_FILE) or not os.path.exists(settings.SSL_CERT_FILE):
+            print("❌ SSL certificates not found!")
+            print(f"   Key file: {settings.SSL_KEY_FILE}")
+            print(f"   Cert file: {settings.SSL_CERT_FILE}")
+            print("   Run: python generate_certs.py")
+            sys.exit(1)
+        
+        print("🔐 Starting server with HTTPS...")
+        uvicorn.run(
+            "api.main:app",
+            host=settings.HOST,
+            port=settings.PORT,
+            reload=settings.DEBUG,
+            log_level="info",
+            ssl_keyfile=settings.SSL_KEY_FILE,
+            ssl_certfile=settings.SSL_CERT_FILE
+        )
+    else:
+        print("🌐 Starting server with HTTP...")
+        uvicorn.run(
+            "api.main:app",
+            host=settings.HOST,
+            port=settings.PORT,
+            reload=settings.DEBUG,
+            log_level="info"
+        ) 

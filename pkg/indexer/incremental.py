@@ -280,31 +280,22 @@ class IncrementalIndexer:
                            gdrive_query: Optional[str] = None,
                            persist_directory: str = "./chroma_db",
                            model_name: str = "all-MiniLM-L6-v2",
-                           force_full: bool = False) -> Optional[Dict[str, Any]]:
+                           force_full: bool = False,
+                           progress_callback=None) -> Optional[Dict[str, Any]]:
         """
         Smart semantic indexing that automatically chooses between incremental and full indexing.
-        
-        Args:
-            directory_path: Path to local directory to index
-            gdrive_folder_id: Google Drive folder ID to index
-            gdrive_query: Additional query to filter Google Drive files
-            persist_directory: ChromaDB persistence directory
-            model_name: Sentence transformer model name
-            force_full: Force full indexing regardless of existing index
-            
-        Returns:
-            Dictionary with indexing statistics
         """
         use_incremental = self.should_use_incremental(
             directory_path, gdrive_folder_id, gdrive_query, None, force_full
         )
-        
         if use_incremental:
             logger.info("Existing semantic index detected - using incremental indexing")
             return self.incremental_semantic_index(directory_path, gdrive_folder_id, gdrive_query, persist_directory, model_name)
         else:
             logger.info("No existing semantic index found - performing full indexing")
-            return self._full_semantic_index(directory_path, gdrive_folder_id, gdrive_query, persist_directory, model_name)
+            from pkg.indexer.semantic import SemanticIndexer
+            indexer = SemanticIndexer(persist_directory=persist_directory, model_name=model_name)
+            return indexer.build_semantic_index(directory_path, progress_callback=progress_callback)
     
     def _full_semantic_index(self,
                            directory_path: Optional[str] = None,
@@ -729,10 +720,10 @@ def smart_semantic_index(directory_path: Optional[str] = None,
                         gdrive_query: Optional[str] = None,
                         persist_directory: str = "./chroma_db",
                         model_name: str = "all-MiniLM-L6-v2",
-                        force_full: bool = False) -> Optional[Dict[str, Any]]:
+                        force_full: bool = False,
+                        progress_callback=None) -> Optional[Dict[str, Any]]:
     """
     Smart semantic indexing that automatically chooses between incremental and full indexing.
-    
     Automatically detects if a semantic index already exists and uses incremental indexing if possible.
     """
     indexer = IncrementalIndexer()
@@ -742,5 +733,6 @@ def smart_semantic_index(directory_path: Optional[str] = None,
         gdrive_query=gdrive_query,
         persist_directory=persist_directory,
         model_name=model_name,
-        force_full=force_full
+        force_full=force_full,
+        progress_callback=progress_callback
     ) 

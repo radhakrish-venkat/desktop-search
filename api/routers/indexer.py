@@ -119,72 +119,29 @@ task_storage = SQLiteTaskStorage()
 
 def get_default_index_path(directory: str) -> str:
     """Get the default index file path for a directory"""
-    # Use chroma_db folder for all index files
+    # Use data folder for all index files - everything in one organized location
     directory_name = os.path.basename(directory.rstrip('/'))
-    return os.path.join(settings.DEFAULT_CHROMA_DB_PATH, f"{directory_name}_index.pkl")
+    return os.path.join(settings.DEFAULT_DATA_PATH, f"{directory_name}_index.pkl")
 
 @router.post("/build", response_model=IndexResponse)
 async def build_index_endpoint(request: IndexRequest):
     """
-    Build a search index for the specified directory
+    Build a search index for all data (global index)
     """
     try:
         start_time = time.time()
-        
-        # Determine index path
-        if request.save_path:
-            index_path = request.save_path
-        else:
-            index_path = get_default_index_path(request.directory)
-        
-        # Build index based on type
-        if request.index_type.value == "semantic":
-            # Semantic indexing
-            stats = smart_semantic_index(
-                directory_path=request.directory,
-                persist_directory=request.db_path or settings.DEFAULT_CHROMA_DB_PATH,
-                model_name=request.model,
-                force_full=request.force_full
-            )
-            
-            if not stats:
-                raise HTTPException(status_code=500, detail="Failed to build semantic index")
-            
-            stats_data = stats.get('stats', {})
-            indexing_type = stats_data.get('indexing_type', 'semantic')
-            
-        elif request.index_type.value == "hybrid":
-            # Hybrid indexing (local + semantic)
-            stats = smart_semantic_index(
-                directory_path=request.directory,
-                persist_directory=request.db_path or settings.DEFAULT_CHROMA_DB_PATH,
-                model_name=request.model,
-                force_full=request.force_full
-            )
-            
-            if not stats:
-                raise HTTPException(status_code=500, detail="Failed to build hybrid index")
-            
-            stats_data = stats.get('stats', {})
-            indexing_type = stats_data.get('indexing_type', 'hybrid')
-            
-        else:
-            # Standard keyword indexing
-            index_data = smart_index(
-                directory_path=request.directory,
-                index_path=index_path,
-                force_full=request.force_full
-            )
-            
-            if not index_data:
-                raise HTTPException(status_code=500, detail="Failed to build index")
-            
-            stats_data = index_data.get('stats', {})
-            indexing_type = stats_data.get('indexing_type', 'keyword')
-        
+        # Always use ChromaDB
+        stats = smart_semantic_index(
+            directory_path=request.directory,
+            persist_directory=settings.DEFAULT_CHROMA_DB_PATH,
+            model_name=request.model,
+            force_full=request.force_full
+        )
+        if not stats:
+            raise HTTPException(status_code=500, detail="Failed to build index")
+        stats_data = stats.get('stats', {})
+        indexing_type = stats_data.get('indexing_type', 'semantic')
         end_time = time.time()
-        
-        # Create response
         index_stats = IndexStats(
             indexing_type=indexing_type,
             total_files=stats_data.get('total_files', 0),
@@ -193,19 +150,17 @@ async def build_index_endpoint(request: IndexRequest):
             deleted_files=stats_data.get('deleted_files', 0),
             skipped_files=stats_data.get('skipped_files', 0),
             total_chunks=stats_data.get('total_chunks', 0),
-            index_path=index_path if request.index_type.value != "semantic" else None,
-            db_path=request.db_path or settings.DEFAULT_CHROMA_DB_PATH if request.index_type.value in ["semantic", "hybrid"] else None
+            index_path=None,
+            db_path=settings.DEFAULT_CHROMA_DB_PATH
         )
-        
         return IndexResponse(
             success=True,
-            message=f"Index built successfully in {end_time - start_time:.2f} seconds",
+            message="Index built successfully",
             stats=index_stats,
-            index_path=index_path if request.index_type.value != "semantic" else None
+            index_path=None
         )
-        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Indexing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to build index: {e}")
 
 @router.post("/gdrive", response_model=IndexResponse)
 async def build_gdrive_index_endpoint(request: GoogleDriveIndexRequest):
@@ -253,10 +208,10 @@ async def build_hybrid_index_endpoint(request: HybridIndexRequest):
         
         # Build hybrid index
         stats = smart_semantic_index(
-            directory_path=request.directory,
+            directory_path=None, # No directory, global index
             gdrive_folder_id=request.gdrive_folder_id,
             gdrive_query=request.gdrive_query,
-            persist_directory=request.db_path or settings.DEFAULT_CHROMA_DB_PATH,
+            persist_directory=settings.DEFAULT_CHROMA_DB_PATH,
             model_name=request.model,
             force_full=request.force_full
         )
@@ -276,7 +231,7 @@ async def build_hybrid_index_endpoint(request: HybridIndexRequest):
             deleted_files=stats_data.get('deleted_files', 0),
             skipped_files=stats_data.get('skipped_files', 0),
             total_chunks=stats_data.get('total_chunks', 0),
-            db_path=request.db_path or settings.DEFAULT_CHROMA_DB_PATH
+            db_path=settings.DEFAULT_CHROMA_DB_PATH
         )
         
         return IndexResponse(
@@ -361,24 +316,13 @@ async def run_indexing_task(task_id: str, request: IndexRequest):
             status="running",
             message="Indexing started"
         )
-        
-        # Run indexing (simplified for background task)
-        # In a real implementation, you'd want to track progress
-        if request.index_type.value == "semantic":
-            stats = smart_semantic_index(
-                directory_path=request.directory,
-                persist_directory=request.db_path or settings.DEFAULT_CHROMA_DB_PATH,
-                model_name=request.model,
-                force_full=request.force_full
-            )
-        else:
-            index_path = request.save_path or get_default_index_path(request.directory)
-            stats = smart_index(
-                directory_path=request.directory,
-                index_path=index_path,
-                force_full=request.force_full
-            )
-        
+        # Only use smart_semantic_index with ChromaDB
+        stats = smart_semantic_index(
+            directory_path=request.directory,
+            persist_directory=settings.DEFAULT_CHROMA_DB_PATH,
+            model_name=request.model,
+            force_full=request.force_full
+        )
         # Update task status to completed
         task_storage.set_task(
             task_id=task_id,
@@ -386,7 +330,6 @@ async def run_indexing_task(task_id: str, request: IndexRequest):
             message="Indexing completed successfully",
             result=stats
         )
-        
     except Exception as e:
         # Update task status with error
         task_storage.set_task(

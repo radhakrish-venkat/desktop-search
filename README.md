@@ -139,80 +139,230 @@ The following packages are required:
 
 ## Usage
 
-### Basic Commands
+### Command Line Interface
 
-**Index a directory (smart indexing):**
+The application provides a unified CLI with the following commands:
+
+**Index a directory (unified ChromaDB):**
 ```bash
 python main.py index /path/to/your/documents
 ```
-This automatically detects if an index already exists and uses incremental indexing for faster updates.
-Creates an `index.pkl` file in the indexed directory.
+This uses smart indexing that automatically detects if an index already exists and uses incremental indexing for faster updates. All data is stored in `data/chroma_db`.
 
 **Search for content:**
 ```bash
 python main.py search "your search query"
 ```
 
-### Advanced Usage
-
-**Index and save to custom location:**
+**View index statistics:**
 ```bash
-python main.py index /path/to/documents --save my_index.pkl
+python main.py stats
 ```
 
-**Force full indexing (rebuild everything):**
+### Web Interface
+
+**Start the API server:**
+```bash
+# HTTP (default)
+python start_api.py
+
+# HTTPS (secure)
+python start_https.py
+```
+
+**Access the web interface:**
+- HTTP: http://localhost:8443
+- HTTPS: https://localhost:8443
+
+## 🌐 Network Access & Security Configuration
+
+### Default Network Configuration
+
+By default, the Desktop Search API is configured for **local network access**:
+
+- **Host Binding**: `0.0.0.0` (accessible from all network interfaces)
+- **Port**: `8443` (static port)
+- **Local Access**: ✅ `https://localhost:8443` or `https://127.0.0.1:8443`
+- **Network Access**: ✅ `https://YOUR_IP:8443` (accessible from other devices on your network)
+- **Internet Access**: ❌ Not configured for external access
+
+### 🔒 Security Considerations
+
+**Current Default State:**
+- ✅ **Local Network**: Other devices on your WiFi/LAN can access the API
+- ❌ **Internet**: Not accessible from outside your network
+- ⚠️ **Security**: Anyone on your local network can potentially access the API
+
+### 🛡️ Restricting Access to Localhost Only
+
+If you want to restrict access to **localhost only** (recommended for development):
+
+#### Option 1: Environment Variable (Recommended)
+```bash
+# Restrict to localhost only
+export HOST="127.0.0.1"
+python start_https.py
+
+# PowerShell
+$env:HOST="127.0.0.1"
+python start_https.py
+```
+
+#### Option 2: Configuration File
+```bash
+# Create .env file
+echo "HOST=127.0.0.1" > .env
+python start_https.py
+```
+
+#### Option 3: Direct Code Change
+```python
+# In api/config.py, change:
+HOST: str = os.getenv("HOST", "127.0.0.1")  # localhost only
+```
+
+### 🌍 Network Access Scenarios
+
+| Configuration | Local Access | Network Access | Internet Access | Use Case |
+|---------------|-------------|----------------|-----------------|----------|
+| `HOST=127.0.0.1` | ✅ | ❌ | ❌ | **Development/Security** |
+| `HOST=0.0.0.0` | ✅ | ✅ | ❌ | **Current Default** |
+| `HOST=0.0.0.0` + Port Forward | ✅ | ✅ | ✅ | **Production/Remote** |
+
+### 🔧 Production Deployment
+
+For production use with external access:
+
+1. **Use a Reverse Proxy** (Recommended):
+   ```bash
+   # Example with nginx
+   server {
+       listen 443 ssl;
+       server_name your-domain.com;
+       
+       location / {
+           proxy_pass https://127.0.0.1:8443;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
+   }
+   ```
+
+2. **Configure Firewall Rules**:
+   ```bash
+   # Allow only specific IPs
+   sudo ufw allow from 192.168.1.0/24 to any port 8443
+   
+   # Or block external access
+   sudo ufw deny 8443
+   ```
+
+3. **Use Environment Variables**:
+   ```bash
+   export HOST="127.0.0.1"  # Bind to localhost only
+   export DEBUG="False"      # Disable debug mode
+   export ALLOWED_ORIGINS="https://yourdomain.com"
+   python start_https.py
+   ```
+
+### 🔍 Check Current Network Access
+
+```bash
+# Check what interfaces the server is listening on
+netstat -an | grep 8443
+
+# Expected output:
+# tcp4       0      0  *.8443                 *.*                    LISTEN     # All interfaces
+# tcp4       0      0  127.0.0.1.8443         *.*                    LISTEN     # Localhost only
+```
+
+### 🚨 Security Recommendations
+
+1. **Development**: Use `HOST=127.0.0.1` for localhost-only access
+2. **Testing**: Use `HOST=0.0.0.0` to test from other devices on your network
+3. **Production**: Use reverse proxy (nginx/apache) with proper SSL certificates
+4. **Firewall**: Configure firewall rules to restrict access as needed
+5. **Authentication**: Always use API keys for production deployments
+6. **HTTPS**: Use HTTPS in production with valid SSL certificates
+
+**Generate SSL certificates for development:**
+```bash
+python generate_certs.py
+```
+
+**Production HTTPS setup:**
+1. Get SSL certificates from a trusted CA (Let's Encrypt, Cloudflare, etc.)
+2. Place certificates in the `certs/` directory:
+   - `certs/key.pem` (private key)
+   - `certs/cert.pem` (certificate)
+3. Set proper permissions: `chmod 600 certs/key.pem && chmod 644 certs/cert.pem`
+4. Start with HTTPS: `python start_https.py`
+
+### Search Options
+
+**Different search types:**
+```bash
+# Semantic search (default)
+python main.py search "your query" --search-type semantic
+
+# Keyword search
+python main.py search "your query" --search-type keyword
+
+# Hybrid search (combines semantic and keyword)
+python main.py search "your query" --search-type hybrid
+```
+
+**Customize search parameters:**
+```bash
+# Limit results
+python main.py search "your query" --limit 20
+
+# Adjust similarity threshold for semantic search
+python main.py search "your query" --threshold 0.5
+```
+
+**Force full indexing:**
 ```bash
 python main.py index /path/to/documents --force-full
-```
-
-**Search with saved index:**
-```bash
-python main.py search "query" --load my_index.pkl
-```
-
-**Search in a specific directory (uses default index.pkl):**
-```bash
-python main.py search "query" --directory /path/to/documents
-```
-
-### Semantic Search
-
-**Build semantic index:**
-```bash
-python main.py semantic-index /path/to/documents
-```
-
-**Perform semantic search:**
-```bash
-python main.py semantic-search "your query"
-```
-
-**Hybrid semantic search (combines semantic and keyword matching):**
-```bash
-python main.py semantic-search "your query" --hybrid
 ```
 
 ### Google Drive Integration
 
 **Set up Google Drive credentials:**
 ```bash
-python main.py setup-gdrive /path/to/credentials.json
+python main.py gdrive setup /path/to/credentials.json
 ```
 
 **Index Google Drive files:**
 ```bash
-python main.py gdrive-index --folder-id "your-folder-id"
+python main.py gdrive index-gdrive --folder-id "your_folder_id"
 ```
 
-**Search Google Drive:**
+**Search Google Drive files:**
 ```bash
-python main.py gdrive-search "your query"
+python main.py gdrive search-gdrive "your query"
 ```
 
-**Hybrid indexing (local + Google Drive):**
+### Web Interface
+
+The application also includes a modern web interface for easy interaction:
+
+1. **Start the API server:**
 ```bash
-python main.py hybrid-index /path/to/local/documents --gdrive-folder-id "your-folder-id"
+python -m uvicorn api.main:app --host 0.0.0.0 --port 8443
 ```
+
+2. **Open the web interface:**
+   - Navigate to `frontend/index.html` in your browser
+   - Or serve it with a simple HTTP server: `python -m http.server 3000`
+
+**Web Interface Features:**
+- **Unified Search**: Search across all indexed directories with semantic, keyword, or hybrid search
+- **Directory Management**: Add, remove, and refresh directories with real-time progress tracking
+- **Statistics Dashboard**: View detailed index statistics and system information
+- **Real-time Updates**: Live progress bars and status updates during indexing
+- **Modern UI**: Clean, responsive design with intuitive navigation
+
 
 ### Security Testing
 
