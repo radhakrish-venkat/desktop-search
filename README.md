@@ -151,23 +151,34 @@ The following packages are required:
 
 The application automatically initializes all necessary components on startup, but you can also manage them manually:
 
-**Check application status:**
+**Comprehensive startup (recommended):**
 ```bash
+python start_desktop_search.py
+```
+
+This will automatically:
+- Check and install Ollama if needed
+- Detect GPU capabilities (NVIDIA, AMD, Apple Silicon, Intel)
+- Initialize the application with SSL certificates
+- Set up LLM system with optimizations
+- Download default models if needed
+- Start the server (HTTP or HTTPS)
+
+**Manual initialization:**
+```bash
+# Check application status
 python main.py status
-```
 
-**Initialize application components:**
-```bash
+# Initialize application components
 python main.py init
-```
 
-**Reinitialize everything from scratch:**
-```bash
+# Initialize LLM system with GPU detection
+python main.py llm initialize
+
+# Reinitialize everything from scratch
 python main.py reinitialize --force
-```
 
-**Fix missing components:**
-```bash
+# Fix missing components
 python main.py status --fix
 ```
 
@@ -212,7 +223,7 @@ python start_https.py
 
 By default, the Desktop Search API is configured for **local network access**:
 
-- **Host Binding**: `0.0.0.0` (accessible from all network interfaces)
+- **Host Binding**: `127.0.0.1` (localhost only)
 - **Port**: `8443` (static port)
 - **Local Access**: ✅ `https://localhost:8443` or `https://127.0.0.1:8443`
 - **Network Access**: ✅ `https://YOUR_IP:8443` (accessible from other devices on your network)
@@ -258,8 +269,8 @@ HOST: str = os.getenv("HOST", "127.0.0.1")  # localhost only
 | Configuration | Local Access | Network Access | Internet Access | Use Case |
 |---------------|-------------|----------------|-----------------|----------|
 | `HOST=127.0.0.1` | ✅ | ❌ | ❌ | **Development/Security** |
-| `HOST=0.0.0.0` | ✅ | ✅ | ❌ | **Current Default** |
-| `HOST=0.0.0.0` + Port Forward | ✅ | ✅ | ✅ | **Production/Remote** |
+| `HOST=127.0.0.1` | ✅ | ✅ | ❌ | **Current Default** |
+| `HOST=127.0.0.1` + Port Forward | ✅ | ✅ | ✅ | **Production/Remote** |
 
 ### 🔧 Production Deployment
 
@@ -311,7 +322,7 @@ netstat -an | grep 8443
 ### 🚨 Security Recommendations
 
 1. **Development**: Use `HOST=127.0.0.1` for localhost-only access
-2. **Testing**: Use `HOST=0.0.0.0` to test from other devices on your network
+2. **Testing**: Use `HOST=0.0.0.0` to test from other devices on your network (requires explicit setting)
 3. **Production**: Use reverse proxy (nginx/apache) with proper SSL certificates
 4. **Firewall**: Configure firewall rules to restrict access as needed
 5. **Authentication**: Always use API keys for production deployments
@@ -381,7 +392,7 @@ The application also includes a modern web interface for easy interaction:
 
 1. **Start the API server:**
 ```bash
-python -m uvicorn api.main:app --host 0.0.0.0 --port 8443
+python -m uvicorn api.main:app --host 127.0.0.1 --port 8443
 ```
 
 2. **Open the web interface:**
@@ -452,3 +463,108 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Security
 
 For security issues, please email [security-email] instead of creating a public issue.
+
+## 🤖 LLM-Enhanced Search (ChatGPT-like, 100% Local)
+
+Desktop Search now supports advanced, ChatGPT-style search and summarization using local LLMs and embeddings. All processing is fully local—no data ever leaves your machine.
+
+### Features
+- **Ask questions about your documents** (natural language Q&A)
+- **Summarize search results**
+- **Get insights and recommendations**
+- **Choose your own models**: Use `bge-small-en`, `nomic-embed-text`, or others for embeddings; `phi3`, `mistral`, etc. for LLMs
+- **Provider support**: Works with [Ollama](https://ollama.ai)
+- **No cloud, no OpenAI, no data leaks**
+
+### Supported Models
+- **Embeddings**: `bge-small-en`, `nomic-embed-text`, `all-MiniLM-L6-v2` (default/fallback)
+- **LLMs**: `phi3`, `mistral`, `llama2`, `codellama` (via Ollama)
+
+### How It Works
+- **Vector DB**: Uses ChromaDB for fast, local vector search
+- **Embeddings**: Sentence Transformers (configurable)
+- **LLM**: Local model (Ollama) generates answers/summaries
+- **Privacy**: No document or query data is sent to the cloud
+
+### Usage
+
+#### CLI
+```bash
+python main.py llm search "What is this project about?"
+```
+
+#### API Example
+```bash
+curl -X POST "https://localhost:8443/api/v1/llm/search" \
+     -H "Authorization: Bearer YOUR_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "query": "project summary",
+       "max_results": 5,
+       "use_llm": true,
+       "llm_model": "phi3",
+       "embedding_model": "bge-small-en"
+     }'
+```
+
+#### Python Example
+```python
+import requests
+resp = requests.post(
+    "https://localhost:8443/api/v1/llm/search",
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    json={
+        "query": "project summary",
+        "max_results": 5,
+        "use_llm": True,
+        "llm_model": "phi3",
+        "embedding_model": "bge-small-en"
+    },
+    verify=False  # For self-signed certs
+)
+print(resp.json())
+```
+
+#### Model/Provider Info
+- List available models: `GET /api/v1/llm/models/available`
+- List providers: `GET /api/v1/llm/providers/available`
+- Change models: `POST /api/v1/llm/config`
+
+#### Performance Optimizations
+The LLM system includes several performance optimizations:
+
+**GPU Acceleration**: Automatically uses GPU if available for faster inference
+**Response Caching**: Caches LLM responses to avoid redundant processing
+**Concurrent Processing**: Handles multiple requests simultaneously
+**Batch Processing**: Processes multiple queries efficiently
+**Performance Monitoring**: Real-time statistics and optimization recommendations
+
+**CLI Performance Commands:**
+```bash
+# Check performance statistics
+python main.py llm performance
+
+# Apply optimizations
+python main.py llm optimize
+
+# Clear performance stats
+python main.py llm clear-stats
+
+# Run comprehensive benchmark
+python benchmark_llm.py
+```
+
+**API Performance Endpoints:**
+```bash
+# Get performance statistics
+GET /api/v1/llm/performance/stats
+
+# Apply optimizations
+POST /api/v1/llm/performance/optimize
+
+# Clear statistics
+POST /api/v1/llm/performance/clear
+```
+
+#### More
+See [LLM_SETUP.md](LLM_SETUP.md) for full setup, troubleshooting, and advanced usage. Also check [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete API reference.

@@ -94,7 +94,7 @@ if __name__ == "__main__":
             print("\nTo start the server, run:")
             print("  python start_api.py")
             print("\nOr:")
-            print("  uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload")
+            print("  uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload")
         else:
             print("\n❌ App creation failed")
     else:

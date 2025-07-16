@@ -47,7 +47,7 @@ python main.py reinitialize --force
 
 ```bash
 # Option 1: Using uvicorn directly
-uvicorn api.main:app --host 0.0.0.0 --port 8443 --reload
+uvicorn api.main:app --host 127.0.0.1 --port 8443 --reload
 
 # Option 2: Using the startup script
 python start_api.py
@@ -285,7 +285,7 @@ You can configure the API using environment variables:
 
 ```bash
 # Server settings
-HOST=0.0.0.0
+HOST=127.0.0.1
 PORT=8443
 DEBUG=False
 
@@ -338,7 +338,7 @@ api/
 
 ```bash
 # Run the API server
-uvicorn api.main:app --host 0.0.0.0 --port 8443 --reload
+uvicorn api.main:app --host 127.0.0.1 --port 8443 --reload
 
 # Test endpoints using curl
 curl -X GET http://localhost:8443/health
@@ -362,7 +362,7 @@ curl -X POST "http://localhost:8443/api/v1/directories/add?path=/path/to/documen
 
 ```bash
 pip install gunicorn
-gunicorn api.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8443
+gunicorn api.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8443
 ```
 
 ### Using Docker
@@ -377,7 +377,7 @@ RUN pip install -r requirements.txt
 COPY . .
 EXPOSE 8443
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8443"]
+CMD ["uvicorn", "api.main:app", "--host", "127.0.0.1", "--port", "8443"]
 ```
 
 ### Environment Configuration
@@ -386,7 +386,7 @@ For production, set appropriate environment variables:
 
 ```bash
 export DEBUG=False
-export HOST=0.0.0.0
+export HOST=127.0.0.1
 export PORT=8443
 export ALLOWED_ORIGINS="https://yourdomain.com"
 ```
