@@ -73,7 +73,7 @@ class LLMProvider:
     def is_available(self) -> bool
 
 # Provider types to support:
-# - Local: Ollama, LocalAI, llama.cpp
+# - Local: Ollama, llama.cpp
 # - Cloud: OpenAI, Anthropic, Google, Azure
 ```
 

@@ -533,6 +533,44 @@
         .btn-secondary:hover {
             background: #5a6268;
         }
+
+        /* LLM Search Specific Styles */
+        .llm-insights {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .llm-answer {
+            background: #f0f8ff;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .llm-summary {
+            background: #fff8e1;
+            border-left: 4px solid #FF9800;
+        }
+
+        .llm-status-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .llm-model-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -545,6 +583,7 @@
         <div class="main-content">
             <div class="tabs">
                 <div class="tab active" onclick="switchTab('search')">Search</div>
+                <div class="tab" onclick="switchTab('llm-search')">LLM Search</div>
                 <div class="tab" onclick="switchTab('directories')">Directories</div>
                 <div class="tab" onclick="switchTab('auth')">API Keys</div>
                 <div class="tab" onclick="switchTab('stats')">Statistics</div>
@@ -584,6 +623,64 @@
 
                 <div class="results-section">
                     <div id="results-container"></div>
+                </div>
+            </div>
+
+            <!-- LLM Search Tab -->
+            <div id="llm-search-tab" class="tab-content">
+                <div class="search-section">
+                    <h2>🤖 LLM-Enhanced Search</h2>
+                    <p style="color: #666; margin-bottom: 20px;">Get AI-powered insights and enhanced search results using local LLM models.</p>
+                    
+                    <div class="search-box">
+                        <input type="text" id="llm-search-input" class="search-input" placeholder="Ask a question or search query..." />
+                        <button onclick="performLLMSearch()" class="search-button">🤖 LLM Search</button>
+                    </div>
+
+                    <div class="search-options">
+                        <div class="option-group">
+                            <label for="llm-search-type">Search Type:</label>
+                            <select id="llm-search-type">
+                                <option value="enhanced">Enhanced Search</option>
+                                <option value="question">Question Answering</option>
+                                <option value="summary">Summary Generation</option>
+                            </select>
+                        </div>
+
+                        <div class="option-group">
+                            <label for="llm-model">LLM Model:</label>
+                            <select id="llm-model">
+                                <option value="phi3">Phi3 (Fast)</option>
+                                <option value="llama2">Llama2 (General)</option>
+                                <option value="mistral">Mistral (Powerful)</option>
+                                <option value="codellama">CodeLlama (Code-focused)</option>
+                            </select>
+                        </div>
+
+                        <div class="option-group">
+                            <label for="llm-max-results">Max Results:</label>
+                            <input type="number" id="llm-max-results" value="10" min="1" max="50" />
+                        </div>
+
+                        <div class="option-group">
+                            <label for="llm-use-llm">Use LLM Enhancement:</label>
+                            <input type="checkbox" id="llm-use-llm" checked style="width: auto; margin-left: 10px;" />
+                        </div>
+                    </div>
+
+                    <div id="llm-search-message"></div>
+                </div>
+
+                <div class="results-section">
+                    <div id="llm-results-container"></div>
+                </div>
+
+                <!-- LLM Status Section -->
+                <div style="margin-top: 40px;">
+                    <h3>🤖 LLM System Status</h3>
+                    <div id="llm-status-container">
+                        <div class="loading">Loading LLM status...</div>
+                    </div>
                 </div>
             </div>
 
@@ -687,10 +784,11 @@
     <script>
         // Auto-detect protocol and port from current location
         const isSecure = window.location.protocol === 'https:';
-        const currentPort = window.location.port;
+        // API runs on port 8443, frontend might be on different port
+        const apiPort = '8443';
         // Always use localhost instead of 127.0.0.1 to avoid CORS issues
         // Force localhost even if the current hostname is 127.0.0.1
-        const API_BASE = `${isSecure ? 'https' : 'http'}://localhost:${currentPort}/api/v1`;
+        const API_BASE = `${isSecure ? 'https' : 'http'}://localhost:${apiPort}/api/v1`;
         
         console.log('API_BASE configured as:', API_BASE);
         
@@ -713,6 +811,15 @@
             
             // Add active class to clicked tab
             event.target.classList.add('active');
+            
+            // Load specific data for certain tabs
+            if (tabName === 'llm-search') {
+                loadLLMStatus();
+            } else if (tabName === 'directories') {
+                loadDirectories();
+            } else if (tabName === 'stats') {
+                loadStats();
+            }
         }
 
         async function performSearch() {
@@ -783,6 +890,189 @@
             `;
 
             container.innerHTML = resultsHtml;
+        }
+
+        async function performLLMSearch() {
+            const query = document.getElementById('llm-search-input').value;
+            const searchType = document.getElementById('llm-search-type').value;
+            const model = document.getElementById('llm-model').value;
+            const maxResults = document.getElementById('llm-max-results').value;
+            const useLLM = document.getElementById('llm-use-llm').checked;
+
+            if (!query.trim()) {
+                showMessage('Please enter a search query or question', 'error', 'llm-search-message');
+                return;
+            }
+
+            showMessage('Processing LLM search...', 'loading', 'llm-search-message');
+
+            try {
+                let endpoint = '';
+                let requestBody = {
+                    query: query,
+                    max_results: parseInt(maxResults),
+                    llm_model: model
+                };
+
+                // Choose endpoint based on search type
+                switch (searchType) {
+                    case 'enhanced':
+                        endpoint = '/llm/search';
+                        requestBody.use_llm = useLLM;
+                        break;
+                    case 'question':
+                        endpoint = '/llm/question';
+                        requestBody.question = query;
+                        break;
+                    case 'summary':
+                        endpoint = '/llm/summary';
+                        break;
+                    default:
+                        endpoint = '/llm/search';
+                        requestBody.use_llm = useLLM;
+                }
+
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayLLMResults(data, searchType);
+                    showMessage(`LLM ${searchType} completed successfully!`, 'success', 'llm-search-message');
+                } else {
+                    showMessage(`LLM ${searchType} failed: ${data.detail}`, 'error', 'llm-search-message');
+                }
+            } catch (error) {
+                showMessage(`LLM search error: ${error.message}`, 'error', 'llm-search-message');
+            }
+        }
+
+        function displayLLMResults(data, searchType) {
+            const container = document.getElementById('llm-results-container');
+            
+            let resultsHtml = '';
+            
+            if (searchType === 'question' && data.answered) {
+                // Display question-answering results
+                resultsHtml = `
+                    <div class="results-header">
+                        <div class="results-count">Question Answered</div>
+                        <div class="search-time">LLM: ${data.llm_model || 'Unknown'}</div>
+                    </div>
+                    <div class="result-item" style="background: #f0f8ff; border-left-color: #4CAF50;">
+                        <div class="result-title">🤖 AI Answer</div>
+                        <div class="result-snippet" style="font-size: 1.1rem; line-height: 1.6;">
+                            ${data.answer}
+                        </div>
+                        <div class="result-meta">
+                            <span>Sources: ${data.sources ? data.sources.length : 0} documents</span>
+                            <span>Model: ${data.llm_model || 'Unknown'}</span>
+                        </div>
+                    </div>
+                `;
+            } else if (searchType === 'summary' && data.summarized) {
+                // Display summary results
+                resultsHtml = `
+                    <div class="results-header">
+                        <div class="results-count">Summary Generated</div>
+                        <div class="search-time">${data.result_count} documents</div>
+                    </div>
+                    <div class="result-item" style="background: #fff8e1; border-left-color: #FF9800;">
+                        <div class="result-title">📝 AI Summary</div>
+                        <div class="result-snippet" style="font-size: 1.1rem; line-height: 1.6;">
+                            ${data.summary}
+                        </div>
+                        <div class="result-meta">
+                            <span>Documents: ${data.result_count}</span>
+                            <span>Model: ${data.llm_model || 'Unknown'}</span>
+                        </div>
+                    </div>
+                `;
+            } else if (data.results && data.results.length > 0) {
+                // Display enhanced search results
+                resultsHtml = `
+                    <div class="results-header">
+                        <div class="results-count">${data.results.length} enhanced results</div>
+                        <div class="search-time">LLM: ${data.llm_model || 'Unknown'}</div>
+                    </div>
+                    ${data.llm_response ? `
+                        <div class="result-item" style="background: #f0f8ff; border-left-color: #2196F3; margin-bottom: 20px;">
+                            <div class="result-title">🤖 LLM Insights</div>
+                            <div class="result-snippet">${data.llm_response}</div>
+                        </div>
+                    ` : ''}
+                    ${data.results.map(result => `
+                        <div class="result-item">
+                            <div class="result-title">${result.filename}</div>
+                            <div class="result-path">${result.filepath}</div>
+                            <div class="result-snippet">${result.snippet}</div>
+                            <div class="result-meta">
+                                ${result.score ? `<span>Score: ${result.score.toFixed(3)}</span>` : ''}
+                                ${result.file_type ? `<span>Type: ${result.file_type}</span>` : ''}
+                                ${result.file_size ? `<span>Size: ${formatFileSize(result.file_size)}</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            } else {
+                resultsHtml = '<div class="loading">No LLM search results found</div>';
+            }
+
+            container.innerHTML = resultsHtml;
+        }
+
+        async function loadLLMStatus() {
+            const container = document.getElementById('llm-status-container');
+            container.innerHTML = '<div class="loading">Loading LLM status...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/llm/status`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const statusHtml = `
+                        <div class="stats-grid">
+                            <div class="stats-card">
+                                <h3>🤖 LLM Provider</h3>
+                                <div class="stats-item">
+                                    <span class="stats-label">Active Provider:</span>
+                                    <span class="stats-value">${data.active_provider || 'None'}</span>
+                                </div>
+                                <div class="stats-item">
+                                    <span class="stats-label">LLM Model:</span>
+                                    <span class="stats-value">${data.llm_model || 'Unknown'}</span>
+                                </div>
+                                <div class="stats-item">
+                                    <span class="stats-label">Embedding Model:</span>
+                                    <span class="stats-value">${data.embedding_model?.model_name || 'Unknown'}</span>
+                                </div>
+                            </div>
+                            <div class="stats-card">
+                                <h3>📊 Available Models</h3>
+                                <div class="stats-item">
+                                    <span class="stats-label">LLM Models:</span>
+                                    <span class="stats-value">${data.available_providers?.length || 0} available</span>
+                                </div>
+                                <div class="stats-item">
+                                    <span class="stats-label">Detected Providers:</span>
+                                    <span class="stats-value">${data.detected_providers?.join(', ') || 'None'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML = statusHtml;
+                } else {
+                    container.innerHTML = `<div class="error">Failed to load LLM status: ${data.detail}</div>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="error">Error loading LLM status: ${error.message}</div>`;
+            }
         }
 
         async function addDirectory() {
@@ -1030,6 +1320,13 @@
             }
         });
 
+        // Allow Enter key to trigger LLM search
+        document.getElementById('llm-search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performLLMSearch();
+            }
+        });
+
         // API Key Management Functions
         async function createAPIKey() {
             const name = document.getElementById('key-name').value;
@@ -1241,6 +1538,7 @@
         // Initial load of directories
         document.addEventListener('DOMContentLoaded', function() {
         loadDirectories();
+        loadLLMStatus(); // Initial load of LLM status
         });
     </script>
 </body>

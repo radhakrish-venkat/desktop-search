@@ -84,6 +84,13 @@ class ModelConfigResponse(BaseModel):
     message: str
     config: Optional[Dict[str, Any]] = None
 
+class PerformanceStatsResponse(BaseModel):
+    total_requests: int
+    cache_hits: int
+    cache_hit_rate: float
+    average_response_time: float
+    total_response_time: float
+
 @router.get("/status", response_model=ModelStatusResponse)
 async def get_llm_status():
     """Get the status of LLM providers and models"""
@@ -172,6 +179,10 @@ async def enhanced_search(request: SearchRequest):
         
         # Enhance with LLM
         enhanced_result = llm_manager.enhance_search_results(request.query, search_results)
+        
+        # Ensure all required fields are present
+        if 'query' not in enhanced_result:
+            enhanced_result['query'] = request.query
         
         return SearchResponse(**enhanced_result)
         
@@ -274,19 +285,13 @@ async def get_available_providers():
         providers = []
         for provider_name in detected:
             if provider_name == "ollama":
-                providers.append({
+                provider_info = {
                     "name": "ollama",
                     "description": "Local LLM server with easy model management",
                     "url": "https://ollama.ai",
                     "models": ["phi3", "mistral", "llama2", "codellama"]
-                })
-            elif provider_name == "localai":
-                providers.append({
-                    "name": "localai",
-                    "description": "Local AI server compatible with OpenAI API",
-                    "url": "https://localai.io",
-                    "models": ["phi3", "mistral", "gpt4all"]
-                })
+                }
+                providers.append(provider_info)
         
         return {
             "detected_providers": detected,
@@ -294,4 +299,65 @@ async def get_available_providers():
         }
     except Exception as e:
         logger.error(f"Error getting available providers: {e}")
-        raise HTTPException(status_code=500, detail=f"Error getting available providers: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error getting available providers: {str(e)}")
+
+@router.get("/performance/stats", response_model=PerformanceStatsResponse)
+async def get_performance_stats():
+    """Get LLM performance statistics"""
+    try:
+        llm_manager = get_llm_manager()
+        stats = llm_manager.get_performance_stats()
+        return PerformanceStatsResponse(**stats)
+    except Exception as e:
+        logger.error(f"Error getting performance stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting performance stats: {str(e)}")
+
+@router.post("/performance/clear")
+async def clear_performance_stats():
+    """Clear LLM performance statistics"""
+    try:
+        llm_manager = get_llm_manager()
+        llm_manager.clear_performance_stats()
+        return {"success": True, "message": "Performance statistics cleared"}
+    except Exception as e:
+        logger.error(f"Error clearing performance stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Error clearing performance stats: {str(e)}")
+
+@router.post("/performance/optimize")
+async def optimize_performance():
+    """Apply performance optimizations to the current setup"""
+    try:
+        llm_manager = get_llm_manager()
+        
+        # Apply optimizations
+        optimizations = []
+        
+        # Check if GPU is available and enable it
+        if llm_manager.config.use_gpu:
+            optimizations.append("GPU acceleration enabled")
+        
+        # Enable caching if not already enabled
+        if not llm_manager.config.cache_responses:
+            llm_manager.config.cache_responses = True
+            optimizations.append("Response caching enabled")
+        
+        # Optimize concurrent requests
+        if llm_manager.config.max_concurrent_requests < 8:
+            llm_manager.config.max_concurrent_requests = 8
+            optimizations.append("Concurrent requests increased to 8")
+        
+        # Update provider configurations
+        for provider in llm_manager.providers.values():
+            if hasattr(provider, '_configure_model_performance'):
+                provider._configure_model_performance()
+                optimizations.append(f"Model performance configured for {type(provider).__name__}")
+        
+        return {
+            "success": True,
+            "message": "Performance optimizations applied",
+            "optimizations": optimizations
+        }
+        
+    except Exception as e:
+        logger.error(f"Error optimizing performance: {e}")
+        raise HTTPException(status_code=500, detail=f"Error optimizing performance: {str(e)}") 

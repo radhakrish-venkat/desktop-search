@@ -68,7 +68,7 @@ Open [https://localhost:8443/docs](https://localhost:8443/docs) in your browser 
 ## 6. Enable LLM-Enhanced Search (ChatGPT-like)
 
 ### Requirements
-- [Ollama](https://ollama.ai) or [LocalAI](https://localai.io) running locally
+- [Ollama](https://ollama.ai) running locally
 - Download a model (e.g., `ollama run phi3`)
 
 ### CLI Example

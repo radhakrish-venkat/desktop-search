@@ -617,7 +617,7 @@ GET /api/v1/stats/performance
 
 ## LLM-Enhanced Search Endpoints
 
-Desktop Search supports advanced, ChatGPT-like search and summarization using local LLMs and embeddings. All LLM features are 100% local—no data leaves your machine. You can choose your own embedding and LLM models (Ollama/LocalAI supported).
+Desktop Search supports advanced, ChatGPT-like search and summarization using local LLMs and embeddings. All LLM features are 100% local—no data leaves your machine. You can choose your own embedding and LLM models (Ollama supported).
 
 ### Get LLM Provider Status
 ```http
@@ -662,14 +662,14 @@ GET /api/v1/llm/models/available
 ```http
 GET /api/v1/llm/providers/available
 ```
-**Description**: List detected LLM providers (Ollama, LocalAI, etc).
+**Description**: List detected LLM providers (Ollama).
 
 **Response**:
 ```json
 {
   "detected_providers": ["ollama"],
   "providers": [
-    {"name": "ollama", "description": "Local LLM server with easy model management", "url": "https://ollama.ai", "models": ["phi3", "mistral"]}
+    {"name": "ollama", "description": "Local LLM server with easy model management", "url": "https://ollama.ai", "models": ["phi3", "mistral", "llama2", "codellama"]}
   ]
 }
 ```

@@ -57,7 +57,7 @@ ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
 
 # Server Settings
 DEBUG=False
-HOST=0.0.0.0
+HOST=127.0.0.1
 PORT=8443
 ```
 
@@ -204,7 +204,7 @@ RUN chown -R appuser:appuser /app
 USER appuser
 EXPOSE 8443
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8443"]
+CMD ["uvicorn", "api.main:app", "--host", "127.0.0.1", "--port", "8443"]
 ```
 
 ## 📞 Security Contact

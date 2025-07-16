@@ -454,9 +454,8 @@ def enhanced_search(query: str, limit: int, search_type: str, threshold: float):
         available_providers = llm_manager.detect_providers()
         if not available_providers:
             click.echo("❌ No local LLM providers available")
-            click.echo("💡 Install Ollama or LocalAI to enable LLM features")
+            click.echo("💡 Install Ollama to enable LLM features")
             click.echo("   - Ollama: https://ollama.ai/")
-            click.echo("   - LocalAI: https://localai.io/")
             raise click.Abort()
         
         click.echo(f"✅ Found LLM providers: {', '.join(available_providers)}")
@@ -526,7 +525,7 @@ def ask_question(question: str, max_results: int, threshold: float):
         available_providers = llm_manager.detect_providers()
         if not available_providers:
             click.echo("❌ No local LLM providers available")
-            click.echo("💡 Install Ollama or LocalAI to enable LLM features")
+            click.echo("💡 Install Ollama to enable LLM features")
             raise click.Abort()
         
         click.echo(f"✅ Found LLM providers: {', '.join(available_providers)}")
@@ -593,7 +592,7 @@ def summarize(query: str, max_results: int, threshold: float):
         available_providers = llm_manager.detect_providers()
         if not available_providers:
             click.echo("❌ No local LLM providers available")
-            click.echo("💡 Install Ollama or LocalAI to enable LLM features")
+            click.echo("💡 Install Ollama to enable LLM features")
             raise click.Abort()
         
         click.echo(f"✅ Found LLM providers: {', '.join(available_providers)}")
@@ -640,17 +639,37 @@ def llm_status():
     click.echo("🔍 Checking local LLM providers...")
     
     try:
+        # Get comprehensive LLM status
+        from pkg.utils.llm_initialization import get_llm_status
+        llm_status = get_llm_status()
+        
+        click.echo(f"\n📊 LLM System Status:")
+        click.echo("=" * 50)
+        
+        # Ollama status
+        ollama_running = llm_status.get("ollama_running", False)
+        click.echo(f"Ollama Status: {'✅ Running' if ollama_running else '❌ Not running'}")
+        
+        # GPU status
+        gpu_available = llm_status.get("gpu_available", False)
+        click.echo(f"GPU Available: {'✅ Yes' if gpu_available else '❌ No'}")
+        
+        # Models
+        models = llm_status.get("models_available", [])
+        if models:
+            click.echo(f"Available Models: {', '.join(models)}")
+        else:
+            click.echo("Available Models: None (consider running 'ollama pull phi3')")
+        
+        # Provider status
         llm_manager = get_llm_manager()
         status_info = llm_manager.get_provider_status()
         
-        click.echo(f"\n📊 LLM Status:")
-        click.echo("=" * 40)
-        
         active_provider = status_info.get("active_provider")
         if active_provider:
-            click.echo(f"✅ Active Provider: {active_provider}")
+            click.echo(f"Active Provider: {active_provider}")
         else:
-            click.echo("❌ No active provider")
+            click.echo("Active Provider: None")
         
         available_providers = status_info.get("available_providers", [])
         if available_providers:
@@ -663,14 +682,191 @@ def llm_status():
             click.echo("\n❌ No LLM providers available")
             click.echo("💡 Install one of the following:")
             click.echo("   - Ollama: https://ollama.ai/")
-            click.echo("   - LocalAI: https://localai.io/")
         
         detected = status_info.get("detected_providers", [])
         if detected:
             click.echo(f"\n🔍 Detected Providers: {', '.join(detected)}")
         
+        # Show performance statistics
+        performance_stats = status_info.get("performance_stats", {})
+        if performance_stats:
+            click.echo(f"\n📈 Performance Statistics:")
+            click.echo(f"   Total Requests: {performance_stats.get('total_requests', 0)}")
+            click.echo(f"   Cache Hits: {performance_stats.get('cache_hits', 0)}")
+            click.echo(f"   Cache Hit Rate: {performance_stats.get('cache_hit_rate', 0.0):.2%}")
+            click.echo(f"   Avg Response Time: {performance_stats.get('average_response_time', 0.0):.2f}s")
+        
+        # Show cache information
+        cache_info = status_info.get("cache_info")
+        if cache_info:
+            click.echo(f"\n💾 Cache Information:")
+            click.echo(f"   Enabled: {'✅' if cache_info.get('enabled', False) else '❌'}")
+            click.echo(f"   Current Size: {cache_info.get('size', 0)}")
+            click.echo(f"   Max Size: {cache_info.get('max_size', 0)}")
+        
     except Exception as e:
         click.echo(f"Error checking LLM status: {e}", err=True)
+        raise click.Abort()
+
+@llm.command()
+def performance():
+    """
+    Show detailed LLM performance statistics and optimization options.
+    """
+    click.echo("📊 LLM Performance Analysis")
+    
+    try:
+        llm_manager = get_llm_manager()
+        stats = llm_manager.get_performance_stats()
+        
+        click.echo(f"\n📈 Performance Statistics:")
+        click.echo("=" * 50)
+        click.echo(f"Total Requests: {stats.get('total_requests', 0)}")
+        click.echo(f"Cache Hits: {stats.get('cache_hits', 0)}")
+        click.echo(f"Cache Hit Rate: {stats.get('cache_hit_rate', 0.0):.2%}")
+        click.echo(f"Average Response Time: {stats.get('average_response_time', 0.0):.2f}s")
+        click.echo(f"Total Response Time: {stats.get('total_response_time', 0.0):.2f}s")
+        
+        # Show configuration
+        config = llm_manager.config
+        click.echo(f"\n⚙️  Current Configuration:")
+        click.echo("=" * 50)
+        click.echo(f"GPU Acceleration: {'✅' if config.use_gpu else '❌'}")
+        click.echo(f"Response Caching: {'✅' if config.cache_responses else '❌'}")
+        click.echo(f"Cache Size: {config.cache_size}")
+        click.echo(f"Max Concurrent Requests: {config.max_concurrent_requests}")
+        click.echo(f"Request Timeout: {config.request_timeout}s")
+        click.echo(f"Batch Size: {config.batch_size}")
+        
+        # Performance recommendations
+        click.echo(f"\n💡 Performance Recommendations:")
+        click.echo("=" * 50)
+        
+        if not config.use_gpu:
+            click.echo("🔧 Enable GPU acceleration for faster inference")
+        
+        if not config.cache_responses:
+            click.echo("🔧 Enable response caching for repeated queries")
+        
+        if config.max_concurrent_requests < 8:
+            click.echo("🔧 Increase max concurrent requests to 8")
+        
+        if stats.get('cache_hit_rate', 0.0) < 0.1:
+            click.echo("🔧 Consider increasing cache size for better hit rates")
+        
+        if stats.get('average_response_time', 0.0) > 5.0:
+            click.echo("🔧 Consider using a smaller/faster model")
+        
+        click.echo("\n💡 Use 'llm optimize' to apply recommended optimizations")
+        
+    except Exception as e:
+        click.echo(f"Error getting performance stats: {e}", err=True)
+        raise click.Abort()
+
+@llm.command()
+def optimize():
+    """
+    Apply performance optimizations to the LLM setup.
+    """
+    click.echo("🔧 Applying LLM Performance Optimizations...")
+    
+    try:
+        llm_manager = get_llm_manager()
+        
+        # Apply optimizations
+        optimizations = []
+        
+        # Enable GPU if available
+        if llm_manager.config.use_gpu:
+            optimizations.append("GPU acceleration enabled")
+        
+        # Enable caching if not already enabled
+        if not llm_manager.config.cache_responses:
+            llm_manager.config.cache_responses = True
+            optimizations.append("Response caching enabled")
+        
+        # Optimize concurrent requests
+        if llm_manager.config.max_concurrent_requests < 8:
+            llm_manager.config.max_concurrent_requests = 8
+            optimizations.append("Concurrent requests increased to 8")
+        
+        # Update provider configurations
+        for provider in llm_manager.providers.values():
+            if hasattr(provider, '_configure_model_performance'):
+                provider._configure_model_performance()
+                optimizations.append(f"Model performance configured for {type(provider).__name__}")
+        
+        if optimizations:
+            click.echo("✅ Applied optimizations:")
+            for opt in optimizations:
+                click.echo(f"   • {opt}")
+        else:
+            click.echo("ℹ️  No optimizations needed - system is already optimized")
+        
+        click.echo("\n💡 Run 'llm performance' to see current statistics")
+        
+    except Exception as e:
+        click.echo(f"Error applying optimizations: {e}", err=True)
+        raise click.Abort()
+
+@llm.command()
+def clear_stats():
+    """
+    Clear LLM performance statistics.
+    """
+    click.echo("🗑️  Clearing LLM performance statistics...")
+    
+    try:
+        llm_manager = get_llm_manager()
+        llm_manager.clear_performance_stats()
+        click.echo("✅ Performance statistics cleared")
+        
+    except Exception as e:
+        click.echo(f"Error clearing statistics: {e}", err=True)
+        raise click.Abort()
+
+@llm.command()
+def initialize():
+    """
+    Initialize LLM system with GPU detection and optimizations.
+    """
+    click.echo("🤖 Initializing LLM system...")
+    
+    try:
+        from pkg.utils.llm_initialization import initialize_llm_system
+        
+        results = initialize_llm_system()
+        
+        if results.get("errors"):
+            click.echo("❌ LLM initialization failed:")
+            for error in results["errors"]:
+                click.echo(f"   - {error}")
+            raise click.Abort()
+        
+        # Print summary
+        click.echo("\n📊 LLM System Summary:")
+        click.echo("=" * 40)
+        click.echo(f"Ollama Status: {'✅ Running' if results.get('ollama_status') else '❌ Not running'}")
+        click.echo(f"GPU Available: {'✅ Yes' if results.get('gpu_available') else '❌ No'}")
+        click.echo(f"GPU Acceleration: {'✅ Enabled' if results.get('gpu_acceleration') else '❌ Disabled'}")
+        click.echo(f"Concurrent Processing: {'✅ Enabled' if results.get('concurrent_processing') else '❌ Disabled'}")
+        
+        models = results.get("models_available", [])
+        if models:
+            click.echo(f"Available Models: {', '.join(models)}")
+        else:
+            click.echo("Available Models: None (consider running 'ollama pull phi3')")
+        
+        optimizations = results.get("optimizations_applied", [])
+        if optimizations:
+            click.echo("\nOptimizations Applied:")
+            for opt in optimizations:
+                click.echo(f"   ✅ {opt}")
+        
+        click.echo("\n✅ LLM system initialized successfully!")
+        
+    except Exception as e:
+        click.echo(f"Error initializing LLM system: {e}", err=True)
         raise click.Abort()
 
 # --- Stats Command ---

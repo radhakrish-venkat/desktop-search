@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # Server settings
-    HOST: str = os.getenv("HOST", "0.0.0.0")  # 0.0.0.0 = all interfaces, "127.0.0.1" = localhost only
+    HOST: str = os.getenv("HOST", "127.0.0.1")  # 127.0.0.1 = localhost only, "0.0.0.0" = all interfaces
     PORT: int = int(os.getenv("PORT", "8443"))  # Default to 8443 for static port
     DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
     

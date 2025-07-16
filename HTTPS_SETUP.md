@@ -120,7 +120,7 @@ export SSL_KEY_FILE=./certs/key.pem
 export SSL_CERT_FILE=./certs/cert.pem
 
 # Server settings
-export HOST=0.0.0.0
+export HOST=127.0.0.1
 export PORT=443  # Standard HTTPS port
 ```
 
@@ -135,7 +135,7 @@ SSL_KEY_FILE=./certs/key.pem
 SSL_CERT_FILE=./certs/cert.pem
 
 # Server Configuration
-HOST=0.0.0.0
+HOST=127.0.0.1
 PORT=443
 DEBUG=false
 
@@ -171,7 +171,7 @@ python start_https.py
 
 ```bash
 uvicorn api.main:app \
-  --host 0.0.0.0 \
+  --host 127.0.0.1 \
   --port 443 \
   --ssl-keyfile ./certs/key.pem \
   --ssl-certfile ./certs/cert.pem
