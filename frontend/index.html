@@ -14,27 +14,202 @@
             box-sizing: border-box;
         }
 
+        :root {
+            /* Default Theme (Blue/Purple) */
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #4facfe;
+            --background-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border-color: #e1e5e9;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        /* Theme: Sunset Orange */
+        [data-theme="sunset"] {
+            --primary-color: #ff6b35;
+            --secondary-color: #f7931e;
+            --accent-color: #ff8c42;
+            --background-color: #fff5f0;
+            --surface-color: #ffffff;
+            --text-primary: #2c1810;
+            --text-secondary: #5a3d2a;
+            --text-muted: #8b6b4a;
+            --border-color: #ffe4d6;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        /* Theme: Forest Green */
+        [data-theme="forest"] {
+            --primary-color: #2d5a27;
+            --secondary-color: #4a7c59;
+            --accent-color: #6b8e23;
+            --background-color: #f0f8f0;
+            --surface-color: #ffffff;
+            --text-primary: #1a2f1a;
+            --text-secondary: #3d5a3d;
+            --text-muted: #6b8e6b;
+            --border-color: #d4e6d4;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        /* Theme: Midnight Dark */
+        [data-theme="midnight"] {
+            --primary-color: #1a1a2e;
+            --secondary-color: #16213e;
+            --accent-color: #0f3460;
+            --background-color: #0f0f23;
+            --surface-color: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #888888;
+            --border-color: #2a2a3e;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        /* Theme: Ocean Blue */
+        [data-theme="ocean"] {
+            --primary-color: #006994;
+            --secondary-color: #0099cc;
+            --accent-color: #00bfff;
+            --background-color: #f0f8ff;
+            --surface-color: #ffffff;
+            --text-primary: #1a3a4a;
+            --text-secondary: #2d5a6a;
+            --text-muted: #5a8a9a;
+            --border-color: #cce5ff;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        /* Theme: Royal Purple */
+        [data-theme="royal"] {
+            --primary-color: #6a4c93;
+            --secondary-color: #8b5cf6;
+            --accent-color: #a855f7;
+            --background-color: #faf5ff;
+            --surface-color: #ffffff;
+            --text-primary: #2d1b69;
+            --text-secondary: #4c1d95;
+            --text-muted: #7c3aed;
+            --border-color: #e9d5ff;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        /* Theme: Fire Red */
+        [data-theme="fire"] {
+            --primary-color: #dc2626;
+            --secondary-color: #ef4444;
+            --accent-color: #f87171;
+            --background-color: #fef2f2;
+            --surface-color: #ffffff;
+            --text-primary: #450a0a;
+            --text-secondary: #7f1d1d;
+            --text-muted: #b91c1c;
+            --border-color: #fecaca;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        /* Theme: Golden Yellow */
+        [data-theme="golden"] {
+            --primary-color: #d97706;
+            --secondary-color: #f59e0b;
+            --accent-color: #fbbf24;
+            --background-color: #fffbeb;
+            --surface-color: #ffffff;
+            --text-primary: #451a03;
+            --text-secondary: #78350f;
+            --text-muted: #a16207;
+            --border-color: #fed7aa;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
             padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--surface-color);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 2px solid var(--border-color);
+        }
+
+        .theme-selector label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .theme-selector select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background: var(--surface-color);
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .theme-selector select:focus {
+            outline: none;
+            border-color: var(--primary-color);
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
+            background: var(--surface-color);
             border-radius: 15px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
+            transition: all 0.3s ease;
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
             padding: 30px;
             text-align: center;
+            transition: all 0.3s ease;
         }
 
         .header h1 {
@@ -49,6 +224,8 @@
 
         .main-content {
             padding: 40px;
+            background: var(--background-color);
+            transition: all 0.3s ease;
         }
 
         .search-section {
@@ -64,20 +241,22 @@
         .search-input {
             flex: 1;
             padding: 15px 20px;
-            border: 2px solid #e1e5e9;
+            border: 2px solid var(--border-color);
             border-radius: 10px;
             font-size: 16px;
+            background: var(--surface-color);
+            color: var(--text-primary);
             transition: border-color 0.3s ease;
         }
 
         .search-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--primary-color);
         }
 
         .search-button {
             padding: 15px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
             border: none;
             border-radius: 10px;
@@ -105,14 +284,16 @@
 
         .option-group label {
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
         }
 
         .option-group select, .option-group input {
             padding: 8px 12px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
             font-size: 14px;
+            background: var(--surface-color);
+            color: var(--text-primary);
         }
 
         .results-section {
@@ -125,26 +306,27 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid var(--border-color);
         }
 
         .results-count {
             font-size: 1.1rem;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .search-time {
             font-size: 0.9rem;
-            color: #999;
+            color: var(--text-muted);
         }
 
         .result-item {
-            background: #f8f9fa;
+            background: var(--surface-color);
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 15px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--primary-color);
             transition: transform 0.2s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
 
         .result-item:hover {
@@ -154,19 +336,19 @@
         .result-title {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
 
         .result-path {
             font-size: 0.9rem;
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 10px;
             font-family: monospace;
         }
 
         .result-snippet {
-            color: #555;
+            color: var(--text-secondary);
             line-height: 1.5;
             margin-bottom: 10px;
         }
@@ -175,561 +357,261 @@
             display: flex;
             gap: 20px;
             font-size: 0.8rem;
-            color: #888;
+            color: var(--text-muted);
         }
 
         .loading {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .error {
             background: #fee;
-            color: #c33;
+            color: var(--error-color);
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
-            border-left: 4px solid #c33;
+            border-left: 4px solid var(--error-color);
         }
 
         .success {
             background: #efe;
-            color: #363;
+            color: var(--success-color);
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
-            border-left: 4px solid #363;
+            border-left: 4px solid var(--success-color);
         }
 
-        .tabs {
-            display: flex;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #f0f0f0;
+        .warning {
+            background: #fffbeb;
+            color: var(--warning-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--warning-color);
         }
 
-        .tab {
-            padding: 15px 30px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .tab.active {
-            border-bottom-color: #667eea;
-            color: #667eea;
-            font-weight: 600;
-        }
-
-        .tab:hover {
-            background: #f8f9fa;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-not_indexed {
-            background: #f8f9fa;
-            color: #6c757d;
-            border: 1px solid #dee2e6;
-        }
-
-        .status-indexing {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-
-        .status-indexed {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .progress-bar {
-            width: 100px;
-            height: 8px;
-            background: #e9ecef;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            transition: width 0.3s ease;
-        }
-
-        .directory-card {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 4px solid #667eea;
-        }
-
-        .directory-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .directory-name {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .directory-path {
-            font-size: 0.9rem;
-            color: #666;
-            font-family: monospace;
-        }
-
-        .directory-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .action-button {
-            padding: 5px 15px;
-            border: none;
-            border-radius: 5px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .action-button.primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .action-button.danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .action-button:hover {
-            opacity: 0.8;
-        }
-
-        .directory-stats {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 10px;
+        .info {
+            background: #e7f3ff;
+            color: var(--info-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--info-color);
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
 
-        .stats-card {
-            background: #f8f9fa;
-            border-radius: 10px;
+        .stat-card {
+            background: var(--surface-color);
             padding: 20px;
-            border-left: 4px solid #667eea;
-        }
-
-        .stats-card h3 {
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .stats-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .stats-label {
-            font-weight: 500;
-            color: #666;
-        }
-
-        .stats-value {
-            font-weight: 600;
-            color: #333;
-        }
-
-        /* API Key Management Styles */
-        .auth-section {
-            background: #f8f9fa;
             border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease;
         }
 
-        .auth-section h3 {
-            margin-top: 0;
-            color: #333;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
+        .stat-card:hover {
+            transform: translateY(-2px);
         }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
             margin-bottom: 5px;
-            font-weight: 500;
-            color: #333;
         }
 
-        .form-group input[type="text"],
-        .form-group input[type="password"],
-        .form-group input[type="number"] {
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
             width: 100%;
-            padding: 10px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .checkbox-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .checkbox-group label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-weight: normal;
-            cursor: pointer;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            margin: 0;
-        }
-
-        .api-key-display {
-            background: #e8f5e8;
-            border: 2px solid #4caf50;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .api-key-display code {
-            background: #fff;
-            padding: 8px 12px;
+            height: 8px;
+            background: var(--border-color);
             border-radius: 4px;
-            font-family: monospace;
-            flex: 1;
-            word-break: break-all;
+            overflow: hidden;
+            margin: 10px 0;
         }
 
-        .key-info {
-            background: #f0f8ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 4px;
+            transition: width 0.3s ease;
         }
 
-        .key-info p {
-            margin: 5px 0;
-        }
-
-        .api-key-card {
-            background: white;
-            border: 1px solid #e1e5e9;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .key-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .key-name {
-            font-weight: 600;
-            color: #333;
-            font-size: 1.1em;
-        }
-
-        .key-id {
-            font-size: 0.9em;
-            color: #666;
-            font-family: monospace;
-        }
-
-        .key-status {
-            text-align: right;
-        }
-
-        .status-active {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-inactive {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .key-details p {
-            margin: 8px 0;
-            color: #555;
-        }
-
-        .key-actions {
-            margin-top: 15px;
-            text-align: right;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-left: 10px;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
+        @media (max-width: 768px) {
+            .theme-selector {
+                position: static;
+                margin-bottom: 20px;
+            }
+            
+            .search-box {
+                flex-direction: column;
+            }
+            
+            .search-options {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="theme-selector">
+        <label for="theme-select">Choose Theme:</label>
+        <select id="theme-select">
+            <option value="default">Default (Blue/Purple)</option>
+            <option value="sunset">Sunset Orange</option>
+            <option value="forest">Forest Green</option>
+            <option value="midnight">Midnight Dark</option>
+            <option value="ocean">Ocean Blue</option>
+            <option value="royal">Royal Purple</option>
+            <option value="fire">Fire Red</option>
+            <option value="golden">Golden Yellow</option>
+        </select>
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>🔍 Desktop Search</h1>
-            <p>Unified search across your local documents with semantic capabilities</p>
+            <p>Unified Search Interface with Multiple Themes</p>
         </div>
 
         <div class="main-content">
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab('search')">Search</div>
-                <div class="tab" onclick="switchTab('directories')">Directories</div>
-                <div class="tab" onclick="switchTab('auth')">API Keys</div>
-                <div class="tab" onclick="switchTab('stats')">Statistics</div>
-            </div>
-
-            <!-- Search Tab -->
-            <div id="search-tab" class="tab-content active">
-                <div class="search-section">
-                    <div class="search-box">
-                        <input type="text" id="search-input" class="search-input" placeholder="Enter your search query..." />
-                        <button onclick="performSearch()" class="search-button">Search</button>
-                    </div>
-
-                    <div class="search-options">
-                        <div class="option-group">
-                            <label for="search-type">Search Type:</label>
-                            <select id="search-type">
-                                <option value="semantic">Semantic Search</option>
-                                <option value="keyword">Keyword Search</option>
-                                <option value="hybrid">Hybrid Search</option>
-                            </select>
-                        </div>
-
-                        <div class="option-group">
-                            <label for="search-limit">Results Limit:</label>
-                            <input type="number" id="search-limit" value="10" min="1" max="100" />
-                        </div>
-
-                        <div class="option-group">
-                            <label for="search-threshold">Similarity Threshold:</label>
-                            <input type="number" id="search-threshold" value="0.3" min="0" max="1" step="0.1" />
-                        </div>
-                    </div>
-
-                    <div id="search-message"></div>
+            <div class="search-section">
+                <div class="search-box">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Enter your search query..." />
+                    <button onclick="performSearch()" class="search-button">Search</button>
                 </div>
 
-                <div class="results-section">
-                    <div id="results-container"></div>
+                <div class="search-options">
+                    <div class="option-group">
+                        <label for="searchType">Search Type:</label>
+                        <select id="searchType">
+                            <option value="semantic">Semantic Search</option>
+                            <option value="keyword">Keyword Search</option>
+                            <option value="hybrid">Hybrid Search</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="maxResults">Max Results:</label>
+                        <select id="maxResults">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="threshold">Similarity Threshold:</label>
+                        <select id="threshold">
+                            <option value="0.1">0.1 (Very Low)</option>
+                            <option value="0.3" selected>0.3 (Low)</option>
+                            <option value="0.5">0.5 (Medium)</option>
+                            <option value="0.7">0.7 (High)</option>
+                            <option value="0.9">0.9 (Very High)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <!-- Directories Tab -->
-            <div id="directories-tab" class="tab-content">
-                <h2>Directory Management</h2>
-                
-                <!-- Add Directory Section -->
-                <div style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 10px;">
-                    <h3>Add New Directory</h3>
-                    <div style="display: flex; gap: 10px; margin: 10px 0;">
-                        <input type="text" id="new-directory-path" placeholder="/path/to/documents" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" />
-                        <button onclick="addDirectory()" class="search-button">Add Directory</button>
-                    </div>
+            <div id="resultsSection" class="results-section" style="display: none;">
+                <div class="results-header">
+                    <div class="results-count" id="resultsCount"></div>
+                    <div class="search-time" id="searchTime"></div>
                 </div>
-
-                <!-- Directory List Section -->
-                <div style="margin: 20px 0;">
-                    <h3>Indexed Directories</h3>
-                    <div id="directories-container">
-                        <div class="loading">Loading directories...</div>
-                    </div>
-                </div>
-                
-                <div id="directories-message"></div>
+                <div id="resultsContainer"></div>
             </div>
 
-            <!-- API Keys Tab -->
-            <div id="auth-tab" class="tab-content">
-                <h2>API Key Management</h2>
-                
-                <!-- Create API Key -->
-                <div class="auth-section">
-                    <h3>Create New API Key</h3>
-                    <div class="form-group">
-                        <label for="key-name">Name:</label>
-                        <input type="text" id="key-name" placeholder="Enter key name" />
-                    </div>
-                    <div class="form-group">
-                        <label for="key-description">Description:</label>
-                        <input type="text" id="key-description" placeholder="Enter description" />
-                    </div>
-                    <div class="form-group">
-                        <label for="key-expires">Expires in (days):</label>
-                        <input type="number" id="key-expires" min="1" max="365" placeholder="Leave empty for no expiration" />
-                    </div>
-                    <div class="form-group">
-                        <label for="key-permissions">Permissions:</label>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" value="read" checked> Read</label>
-                            <label><input type="checkbox" value="search" checked> Search</label>
-                            <label><input type="checkbox" value="index"> Index</label>
-                            <label><input type="checkbox" value="admin"> Admin</label>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="admin-key">Admin Key (if required):</label>
-                        <input type="password" id="admin-key" placeholder="Enter admin key" />
-                    </div>
-                    <button onclick="createAPIKey()" class="search-button">Create API Key</button>
-                    <div id="auth-message"></div>
+            <div id="loadingSection" class="loading" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
                 </div>
-                
-                <!-- API Key List -->
-                <div class="auth-section">
-                    <h3>Manage API Keys</h3>
-                    <div class="form-group">
-                        <label for="list-admin-key">Admin Key:</label>
-                        <input type="password" id="list-admin-key" placeholder="Enter admin key to list keys" />
-                    </div>
-                    <button onclick="listAPIKeys()" class="search-button">List Keys</button>
-                    <button onclick="loadAPIKeys()" class="search-button">Refresh List</button>
-                    <div id="api-keys-container">
-                        <div class="loading">Enter admin key and click "List Keys" to view API keys</div>
-                    </div>
-                </div>
-                
-                <!-- Validate API Key -->
-                <div class="auth-section">
-                    <h3>Validate API Key</h3>
-                    <div class="form-group">
-                        <label for="validate-key">API Key:</label>
-                        <input type="password" id="validate-key" placeholder="Enter API key to validate" />
-                    </div>
-                    <button onclick="validateAPIKey()" class="search-button">Validate Key</button>
-                    <div id="validate-result"></div>
-                </div>
+                <p>Searching your documents...</p>
             </div>
 
-            <!-- Stats Tab -->
-            <div id="stats-tab" class="tab-content">
-                <h2>System Statistics</h2>
-                <div style="margin: 20px 0;">
-                    <button onclick="loadStats()" class="search-button">Load Statistics</button>
+            <div id="statsSection" class="stats-grid" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalFiles">0</div>
+                    <div class="stat-label">Total Files</div>
                 </div>
-                <div id="stats-container"></div>
+                <div class="stat-card">
+                    <div class="stat-number" id="indexedFiles">0</div>
+                    <div class="stat-label">Indexed Files</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="searchTime">0ms</div>
+                    <div class="stat-label">Search Time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avgScore">0.0</div>
+                    <div class="stat-label">Avg Score</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Auto-detect protocol and port from current location
-        const isSecure = window.location.protocol === 'https:';
-        const currentPort = window.location.port;
-        // Always use localhost instead of 127.0.0.1 to avoid CORS issues
-        // Force localhost even if the current hostname is 127.0.0.1
-        const API_BASE = `${isSecure ? 'https' : 'http'}://localhost:${currentPort}/api/v1`;
+        // Theme management
+        const themeSelect = document.getElementById('theme-select');
         
-        console.log('API_BASE configured as:', API_BASE);
+        // Load saved theme from localStorage
+        const savedTheme = localStorage.getItem('selectedTheme') || 'default';
+        themeSelect.value = savedTheme;
+        document.documentElement.setAttribute('data-theme', savedTheme);
         
-        // Global flag to prevent multiple simultaneous calls
-        let isLoadingDirectories = false;
+        // Theme change handler
+        themeSelect.addEventListener('change', function() {
+            const selectedTheme = this.value;
+            document.documentElement.setAttribute('data-theme', selectedTheme);
+            localStorage.setItem('selectedTheme', selectedTheme);
+        });
 
-        function switchTab(tabName) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Remove active class from all tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Show selected tab content
-            document.getElementById(tabName + '-tab').classList.add('active');
-            
-            // Add active class to clicked tab
-            event.target.classList.add('active');
-        }
-
+        // Search functionality
         async function performSearch() {
-            const query = document.getElementById('search-input').value;
-            const searchType = document.getElementById('search-type').value;
-            const limit = document.getElementById('search-limit').value;
-            const threshold = document.getElementById('search-threshold').value;
-
-            if (!query.trim()) {
-                showMessage('Please enter a search query', 'error');
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                showMessage('Please enter a search query', 'warning');
                 return;
             }
 
-            showMessage('Searching...', 'loading');
+            const searchType = document.getElementById('searchType').value;
+            const maxResults = parseInt(document.getElementById('maxResults').value);
+            const threshold = parseFloat(document.getElementById('threshold').value);
+
+            // Show loading
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('loadingSection').style.display = 'block';
+            document.getElementById('statsSection').style.display = 'none';
+
+            // Simulate progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) progress = 90;
+                document.getElementById('progressFill').style.width = progress + '%';
+            }, 100);
 
             try {
-                const response = await fetch(`${API_BASE}/searcher/search`, {
+                const startTime = Date.now();
+                
+                const response = await fetch('/api/v1/search', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -737,282 +619,97 @@
                     body: JSON.stringify({
                         query: query,
                         search_type: searchType,
-                        limit: parseInt(limit),
-                        threshold: parseFloat(threshold)
+                        max_results: maxResults,
+                        threshold: threshold
                     })
                 });
 
-                const data = await response.json();
+                clearInterval(progressInterval);
+                document.getElementById('progressFill').style.width = '100%';
 
-                if (response.ok) {
-                    displayResults(data);
-                    showMessage(`Found ${data.total_results} results in ${data.search_time_ms.toFixed(2)}ms`, 'success');
-                } else {
-                    showMessage(`Search failed: ${data.detail}`, 'error');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            } catch (error) {
-                showMessage(`Search error: ${error.message}`, 'error');
-            }
-        }
-
-        function displayResults(data) {
-            const container = document.getElementById('results-container');
-            
-            if (data.results.length === 0) {
-                container.innerHTML = '<div class="loading">No results found</div>';
-                return;
-            }
-
-            const resultsHtml = `
-                <div class="results-header">
-                    <div class="results-count">${data.total_results} results</div>
-                    <div class="search-time">${data.search_time_ms.toFixed(2)}ms</div>
-                </div>
-                ${data.results.map(result => `
-                    <div class="result-item">
-                        <div class="result-title">${result.filename}</div>
-                        <div class="result-path">${result.filepath}</div>
-                        <div class="result-snippet">${result.snippet}</div>
-                        <div class="result-meta">
-                            ${result.score ? `<span>Score: ${result.score.toFixed(3)}</span>` : ''}
-                            ${result.file_type ? `<span>Type: ${result.file_type}</span>` : ''}
-                            ${result.file_size ? `<span>Size: ${formatFileSize(result.file_size)}</span>` : ''}
-                        </div>
-                    </div>
-                `).join('')}
-            `;
-
-            container.innerHTML = resultsHtml;
-        }
-
-        async function addDirectory() {
-            const newPath = document.getElementById('new-directory-path').value;
-
-            if (!newPath.trim()) {
-                showMessage('Please enter a directory path', 'error', 'directories-message');
-                return;
-            }
-
-            console.log('Adding directory:', newPath);
-            console.log('API URL:', `${API_BASE}/directories/add?path=${encodeURIComponent(newPath)}`);
-
-            showMessage('Adding directory...', 'loading', 'directories-message');
-
-            try {
-                const response = await fetch(`${API_BASE}/directories/add?path=${encodeURIComponent(newPath)}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-
-                console.log('Add directory response status:', response.status);
-                console.log('Add directory response headers:', response.headers);
 
                 const data = await response.json();
-                console.log('Add directory response data:', data);
+                const endTime = Date.now();
+                const searchTime = endTime - startTime;
 
-                if (response.ok) {
-                    showMessage(`Directory "${newPath}" added successfully!`, 'success', 'directories-message');
-                    document.getElementById('new-directory-path').value = '';
-                    loadDirectories();
-                } else {
-                    showMessage(`Failed to add directory: ${data.detail}`, 'error', 'directories-message');
-                }
+                displayResults(data, searchTime);
+                displayStats(data, searchTime);
+
             } catch (error) {
-                console.error('Error adding directory:', error);
-                showMessage(`Error adding directory: ${error.message}`, 'error', 'directories-message');
-            }
-        }
-
-        async function loadDirectories() {
-            if (isLoadingDirectories) {
-                return;
-            }
-            
-            isLoadingDirectories = true;
-            
-            const container = document.getElementById('directories-container');
-            container.innerHTML = '<div class="loading">Loading directories...</div>';
-
-            console.log('Loading directories from:', `${API_BASE}/directories/list`);
-
-            try {
-                const response = await fetch(`${API_BASE}/directories/list`);
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                
-                const data = await response.json();
-                console.log('Response data:', data);
-
-                if (response.ok) {
-                    if (data.directories.length === 0) {
-                        container.innerHTML = '<div class="loading">No directories found. Add one!</div>';
-                    } else {
-                        const directoriesHtml = data.directories.map(dir => `
-                            <div class="directory-card">
-                                <div class="directory-header">
-                                    <div>
-                                        <div class="directory-name">${dir.name}</div>
-                                        <div class="directory-path">${dir.path}</div>
-                                    </div>
-                                    <div class="directory-actions">
-                                        <span class="status-badge status-${dir.status}">${dir.status}</span>
-                                        ${dir.status === 'indexing' ? 
-                                            `<div class="progress-bar">
-                                                <div class="progress-fill" style="width: ${dir.progress * 100}%"></div>
-                                            </div>` : ''
-                                        }
-                                        ${dir.status === 'indexed' ? 
-                                            `<button onclick="refreshDirectory('${dir.path}')" class="action-button primary">Refresh</button>` :
-                                            dir.status === 'not_indexed' ? 
-                                            `<button onclick="refreshDirectory('${dir.path}')" class="action-button primary">Index</button>` :
-                                            ''
-                                        }
-                                        <button onclick="removeDirectory('${dir.path}')" class="action-button danger">Remove</button>
-                                    </div>
-                                </div>
-                                ${dir.status === 'indexed' ? 
-                                    `<div class="directory-stats">
-                                        Files: ${dir.indexed_files} | Last indexed: ${dir.last_indexed ? new Date(dir.last_indexed).toLocaleString() : 'Unknown'}
-                                    </div>` : ''
-                                }
-                                ${dir.status === 'indexing' ? 
-                                    `<div class="directory-stats">
-                                        Progress: ${Math.round(dir.progress * 100)}% | Files: ${dir.indexed_files}/${dir.total_files}
-                                    </div>` : ''
-                                }
-                            </div>
-                        `).join('');
-                        
-                        container.innerHTML = directoriesHtml;
-                        
-                        // No automatic polling - user can manually refresh if needed
-                    }
-                } else {
-                    container.innerHTML = `<div class="error">Failed to load directories: ${data.detail}</div>`;
-                }
-            } catch (error) {
-                console.error('Error loading directories:', error);
-                container.innerHTML = `<div class="error">Error loading directories: ${error.message}</div>`;
+                clearInterval(progressInterval);
+                showMessage(`Search failed: ${error.message}`, 'error');
             } finally {
-                isLoadingDirectories = false;
+                document.getElementById('loadingSection').style.display = 'none';
             }
         }
 
-        async function refreshDirectory(path) {
-            showMessage(`Starting indexing for "${path}"...`, 'loading', 'directories-message');
+        function displayResults(data, searchTime) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsCount = document.getElementById('resultsCount');
+            const searchTimeElement = document.getElementById('searchTime');
 
-            try {
-                const response = await fetch(`${API_BASE}/directories/refresh/${encodeURIComponent(path)}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
+            resultsContainer.innerHTML = '';
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    showMessage(`Indexing started for "${path}"`, 'success', 'directories-message');
-                    loadDirectories();
-                } else {
-                    showMessage(`Failed to start indexing: ${data.detail}`, 'error', 'directories-message');
-                }
-            } catch (error) {
-                showMessage(`Error starting indexing: ${error.message}`, 'error', 'directories-message');
-            }
-        }
-
-        async function removeDirectory(path) {
-            if (!confirm(`Are you sure you want to remove "${path}" from the index?`)) {
-                return;
-            }
-
-            showMessage(`Removing directory "${path}"...`, 'loading', 'directories-message');
-
-            try {
-                const response = await fetch(`${API_BASE}/directories/remove/${encodeURIComponent(path)}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showMessage(`Directory "${path}" removed successfully!`, 'success', 'directories-message');
-                    loadDirectories();
-                } else {
-                    showMessage(`Failed to remove directory: ${data.detail}`, 'error', 'directories-message');
-                }
-            } catch (error) {
-                showMessage(`Error removing directory: ${error.message}`, 'error', 'directories-message');
-            }
-        }
-
-
-
-        async function loadStats() {
-            const container = document.getElementById('stats-container');
-            container.innerHTML = '<div class="loading">Loading statistics...</div>';
-
-            try {
-                const response = await fetch(`${API_BASE}/stats/system`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    const stats = data.data;
-                    container.innerHTML = `
-                        <div class="stats-grid">
-                            <div class="stats-card">
-                                <h3>Index Statistics</h3>
-                                <div class="stats-item">
-                                    <span class="stats-label">Total Chunks:</span>
-                                    <span class="stats-value">${stats.total_chunks || 0}</span>
-                                </div>
-                                <div class="stats-item">
-                                    <span class="stats-label">Model:</span>
-                                    <span class="stats-value">${stats.model_name || 'Unknown'}</span>
-                                </div>
-                                <div class="stats-item">
-                                    <span class="stats-label">Database Path:</span>
-                                    <span class="stats-value">${stats.persist_directory || 'Unknown'}</span>
-                                </div>
-                                <div class="stats-item">
-                                    <span class="stats-label">DB Size:</span>
-                                    <span class="stats-value">${stats.db_size_human || 'Unknown'}</span>
-                                </div>
-                            </div>
-                            <div class="stats-card">
-                                <h3>Directory Statistics</h3>
-                                <div class="stats-item">
-                                    <span class="stats-label">Total Directories:</span>
-                                    <span class="stats-value">${stats.total_directories || 0}</span>
-                                </div>
-                                <div class="stats-item">
-                                    <span class="stats-label">Indexed Directories:</span>
-                                    <span class="stats-value">${stats.indexed_directories || 0}</span>
-                                </div>
-                                <div class="stats-item">
-                                    <span class="stats-label">Total Files:</span>
-                                    <span class="stats-value">${stats.total_files || 0}</span>
-                                </div>
-                            </div>
+            if (data.results && data.results.length > 0) {
+                data.results.forEach((result, index) => {
+                    const resultElement = document.createElement('div');
+                    resultElement.className = 'result-item';
+                    resultElement.innerHTML = `
+                        <div class="result-title">${result.filename || 'Unknown File'}</div>
+                        <div class="result-path">${result.filepath || 'Unknown Path'}</div>
+                        <div class="result-snippet">${result.content || 'No content available'}</div>
+                        <div class="result-meta">
+                            <span>Score: ${(result.score * 100).toFixed(1)}%</span>
+                            <span>Type: ${result.file_type || 'Unknown'}</span>
+                            <span>Size: ${formatFileSize(result.file_size || 0)}</span>
                         </div>
                     `;
-                } else {
-                    container.innerHTML = `<div class="error">Failed to load statistics: ${data.detail}</div>`;
-                }
-            } catch (error) {
-                container.innerHTML = `<div class="error">Error loading statistics: ${error.message}</div>`;
+                    resultsContainer.appendChild(resultElement);
+                });
+
+                resultsCount.textContent = `${data.results.length} results found`;
+                searchTimeElement.textContent = `Search completed in ${searchTime}ms`;
+            } else {
+                resultsContainer.innerHTML = '<div class="info">No results found. Try adjusting your search criteria.</div>';
+                resultsCount.textContent = '0 results found';
+                searchTimeElement.textContent = `Search completed in ${searchTime}ms`;
             }
+
+            resultsSection.style.display = 'block';
         }
 
-        function showMessage(message, type, containerId = 'search-message') {
-            const container = document.getElementById(containerId);
-            container.innerHTML = `<div class="${type}">${message}</div>`;
+        function displayStats(data, searchTime) {
+            const statsSection = document.getElementById('statsSection');
+            
+            document.getElementById('totalFiles').textContent = data.total_files || 0;
+            document.getElementById('indexedFiles').textContent = data.indexed_files || 0;
+            document.getElementById('searchTime').textContent = searchTime + 'ms';
+            
+            if (data.results && data.results.length > 0) {
+                const avgScore = data.results.reduce((sum, result) => sum + result.score, 0) / data.results.length;
+                document.getElementById('avgScore').textContent = (avgScore * 100).toFixed(1) + '%';
+            } else {
+                document.getElementById('avgScore').textContent = '0.0%';
+            }
+            
+            statsSection.style.display = 'grid';
+        }
+
+        function showMessage(message, type) {
+            const messageElement = document.createElement('div');
+            messageElement.className = type;
+            messageElement.textContent = message;
+            
+            const mainContent = document.querySelector('.main-content');
+            mainContent.insertBefore(messageElement, mainContent.firstChild);
+            
+            setTimeout(() => {
+                messageElement.remove();
+            }, 5000);
         }
 
         function formatFileSize(bytes) {
@@ -1023,224 +720,17 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        // Allow Enter key to trigger search
-        document.getElementById('search-input').addEventListener('keypress', function(e) {
+        // Enter key handler
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 performSearch();
             }
         });
 
-        // API Key Management Functions
-        async function createAPIKey() {
-            const name = document.getElementById('key-name').value;
-            const description = document.getElementById('key-description').value;
-            const expiresDays = document.getElementById('key-expires').value;
-            const adminKey = document.getElementById('admin-key').value;
-            
-            // Get selected permissions
-            const permissionCheckboxes = document.querySelectorAll('#auth-tab input[type="checkbox"]:checked');
-            const permissions = Array.from(permissionCheckboxes).map(cb => cb.value);
-            
-            if (!name.trim()) {
-                showMessage('Please enter a key name', 'error', 'auth-message');
-                return;
-            }
-            
-            showMessage('Creating API key...', 'loading', 'auth-message');
-            
-            try {
-                const response = await fetch(`${API_BASE}/auth/create-key`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        name: name,
-                        description: description || null,
-                        expires_days: expiresDays ? parseInt(expiresDays) : null,
-                        permissions: permissions,
-                        admin_key: adminKey || null
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    const keyInfo = data.data;
-                    showMessage('API key created successfully!', 'success', 'auth-message');
-                    
-                    // Display the API key (only shown once)
-                    const container = document.getElementById('auth-message');
-                    container.innerHTML = `
-                        <div class="success">
-                            <p>✅ API key created successfully!</p>
-                            <div class="api-key-display">
-                                <strong>API Key:</strong> <code>${keyInfo.api_key}</code>
-                                <button onclick="copyToClipboard('${keyInfo.api_key}')" class="btn-secondary">Copy</button>
-                            </div>
-                            <p><strong>⚠️ IMPORTANT:</strong> Save this API key securely - it won't be shown again!</p>
-                            <div class="key-info">
-                                <p><strong>Name:</strong> ${keyInfo.key_info.name}</p>
-                                <p><strong>Created:</strong> ${new Date(keyInfo.key_info.created_at).toLocaleString()}</p>
-                                ${keyInfo.key_info.expires_at ? `<p><strong>Expires:</strong> ${new Date(keyInfo.key_info.expires_at).toLocaleString()}</p>` : ''}
-                                <p><strong>Permissions:</strong> ${keyInfo.key_info.permissions.join(', ')}</p>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Clear form
-                    document.getElementById('key-name').value = '';
-                    document.getElementById('key-description').value = '';
-                    document.getElementById('key-expires').value = '';
-                    document.getElementById('admin-key').value = '';
-                } else {
-                    showMessage(`Failed to create API key: ${data.detail}`, 'error', 'auth-message');
-                }
-            } catch (error) {
-                showMessage(`Error creating API key: ${error.message}`, 'error', 'auth-message');
-            }
-        }
-
-        async function listAPIKeys() {
-            const adminKey = document.getElementById('list-admin-key').value;
-            
-            if (!adminKey.trim()) {
-                showMessage('Please enter an admin key', 'error', 'auth-message');
-                return;
-            }
-            
-            showMessage('Loading API keys...', 'loading', 'auth-message');
-            
-            try {
-                const response = await fetch(`${API_BASE}/auth/list-keys?admin_key=${encodeURIComponent(adminKey)}`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    displayAPIKeys(data.keys);
-                    showMessage(`Loaded ${data.keys.length} API keys`, 'success', 'auth-message');
-                } else {
-                    showMessage(`Failed to load API keys: ${data.detail}`, 'error', 'auth-message');
-                }
-            } catch (error) {
-                showMessage(`Error loading API keys: ${error.message}`, 'error', 'auth-message');
-            }
-        }
-
-        function displayAPIKeys(keys) {
-            const container = document.getElementById('api-keys-container');
-            
-            if (keys.length === 0) {
-                container.innerHTML = '<div class="info">No API keys found</div>';
-                return;
-            }
-            
-            const keysHtml = keys.map(key => `
-                <div class="api-key-card">
-                    <div class="key-header">
-                        <div>
-                            <div class="key-name">${key.name}</div>
-                            <div class="key-id">ID: ${key.id}</div>
-                        </div>
-                        <div class="key-status">
-                            <span class="status-badge ${key.is_active ? 'status-active' : 'status-inactive'}">
-                                ${key.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="key-details">
-                        <p><strong>Description:</strong> ${key.description || 'No description'}</p>
-                        <p><strong>Created:</strong> ${new Date(key.created_at).toLocaleString()}</p>
-                        ${key.expires_at ? `<p><strong>Expires:</strong> ${new Date(key.expires_at).toLocaleString()}</p>` : ''}
-                        <p><strong>Permissions:</strong> ${key.permissions.join(', ')}</p>
-                    </div>
-                    <div class="key-actions">
-                        <button onclick="revokeAPIKey('${key.id}')" class="action-button danger">Revoke</button>
-                    </div>
-                </div>
-            `).join('');
-            
-            container.innerHTML = keysHtml;
-        }
-
-        async function revokeAPIKey(keyId) {
-            const adminKey = document.getElementById('list-admin-key').value;
-            
-            if (!confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
-                return;
-            }
-            
-            showMessage('Revoking API key...', 'loading', 'auth-message');
-            
-            try {
-                const response = await fetch(`${API_BASE}/auth/revoke-key/${keyId}?admin_key=${encodeURIComponent(adminKey)}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    showMessage(data.message, 'success', 'auth-message');
-                    listAPIKeys(); // Refresh the list
-                } else {
-                    showMessage(`Failed to revoke key: ${data.detail}`, 'error', 'auth-message');
-                }
-            } catch (error) {
-                showMessage(`Error revoking key: ${error.message}`, 'error', 'auth-message');
-            }
-        }
-
-        async function validateAPIKey() {
-            const apiKey = document.getElementById('validate-key').value;
-            
-            if (!apiKey.trim()) {
-                showMessage('Please enter an API key', 'error', 'validate-result');
-                return;
-            }
-            
-            showMessage('Validating API key...', 'loading', 'validate-result');
-            
-            try {
-                const response = await fetch(`${API_BASE}/auth/validate-key`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ api_key: apiKey })
-                });
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    const keyInfo = data.data.key_info;
-                    showMessage('✅ API key is valid!', 'success', 'validate-result');
-                    
-                    const container = document.getElementById('validate-result');
-                    container.innerHTML = `
-                        <div class="success">
-                            <p>✅ API key is valid!</p>
-                            <div class="key-info">
-                                <p><strong>Name:</strong> ${keyInfo.name}</p>
-                                <p><strong>Permissions:</strong> ${keyInfo.permissions.join(', ')}</p>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    showMessage(`❌ Invalid API key: ${data.detail}`, 'error', 'validate-result');
-                }
-            } catch (error) {
-                showMessage(`Error validating key: ${error.message}`, 'error', 'validate-result');
-            }
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('API key copied to clipboard!');
-            }).catch(() => {
-                alert('Failed to copy to clipboard. Please copy manually.');
-            });
-        }
-
-        // Initial load of directories
-        document.addEventListener('DOMContentLoaded', function() {
-        loadDirectories();
+        // Initialize with some sample data for demonstration
+        window.addEventListener('load', function() {
+            // You can add initialization code here
+            console.log('Desktop Search Interface loaded with theme support');
         });
     </script>
 </body>

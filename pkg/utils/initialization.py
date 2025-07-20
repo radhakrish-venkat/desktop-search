@@ -83,6 +83,45 @@ class AppInitializer:
         except Exception as e:
             print(f"❌ Error removing existing components: {e}")
             return False
+    
+    def _initialize_llm_system(self) -> bool:
+        """Initialize the LLM system with GPU detection and optimizations"""
+        try:
+            from pkg.utils.llm_initialization import initialize_llm_system
+            
+            print("🤖 Initializing LLM system...")
+            results = initialize_llm_system()
+            
+            if results.get("errors"):
+                print("❌ LLM initialization errors:")
+                for error in results["errors"]:
+                    print(f"   - {error}")
+                return False
+            
+            # Print summary
+            print("📊 LLM System Summary:")
+            print(f"   Ollama Status: {'✅ Running' if results.get('ollama_status') else '❌ Not running'}")
+            print(f"   GPU Available: {'✅ Yes' if results.get('gpu_available') else '❌ No'}")
+            print(f"   GPU Acceleration: {'✅ Enabled' if results.get('gpu_acceleration') else '❌ Disabled'}")
+            print(f"   Concurrent Processing: {'✅ Enabled' if results.get('concurrent_processing') else '❌ Disabled'}")
+            
+            models = results.get("models_available", [])
+            if models:
+                print(f"   Available Models: {', '.join(models)}")
+            else:
+                print("   Available Models: None (consider running 'ollama pull phi3')")
+            
+            optimizations = results.get("optimizations_applied", [])
+            if optimizations:
+                print("   Optimizations Applied:")
+                for opt in optimizations:
+                    print(f"     ✅ {opt}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ LLM initialization failed: {e}")
+            return False
         
     def initialize_all(self) -> bool:
         """Initialize all application components"""
@@ -104,6 +143,10 @@ class AppInitializer:
             # Check and create directories.json
             if not self._check_and_create_directories():
                 return False
+                
+            # Initialize LLM system
+            if not self._initialize_llm_system():
+                print("⚠️  LLM initialization failed, but continuing with basic setup")
                 
             print("✅ Application initialization completed successfully!")
             return True

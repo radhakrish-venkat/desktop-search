@@ -10,8 +10,9 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # Server settings
-    HOST: str = os.getenv("HOST", "0.0.0.0")  # 0.0.0.0 = all interfaces, "127.0.0.1" = localhost only
-    PORT: int = int(os.getenv("PORT", "8443"))  # Default to 8443 for static port
+    HOST: str = os.getenv("HOST", "127.0.0.1")  # 127.0.0.1 = localhost only, "0.0.0.0" = all interfaces
+    PORT: int = int(os.getenv("PORT", "8880"))  # Default to 8880 for HTTP
+    HTTPS_PORT: int = int(os.getenv("HTTPS_PORT", "8443"))  # HTTPS port
     DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
     
     # CORS settings
@@ -19,9 +20,11 @@ class Settings(BaseSettings):
         "http://localhost:3000",  # React dev server
         "http://localhost:8080",  # Vue dev server
         "http://localhost:5173",  # Vite dev server
+        "http://localhost:8880",  # HTTP localhost with specific port
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8080",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:8880",  # HTTP 127.0.0.1 with specific port
         "https://localhost",      # HTTPS localhost (any port)
         "http://localhost",       # HTTP localhost (any port)
         "https://127.0.0.1",     # HTTPS 127.0.0.1 (any port)

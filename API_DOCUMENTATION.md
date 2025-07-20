@@ -615,6 +615,212 @@ GET /api/v1/stats/performance
 }
 ```
 
+## LLM-Enhanced Search Endpoints
+
+Desktop Search supports advanced, ChatGPT-like search and summarization using local LLMs and embeddings. All LLM features are 100% local—no data leaves your machine. You can choose your own embedding and LLM models (Ollama supported).
+
+### Get LLM Provider Status
+```http
+GET /api/v1/llm/status
+```
+**Description**: Get the status of LLM providers, active model, and embedding model.
+
+**Response**:
+```json
+{
+  "active_provider": "OllamaProvider",
+  "available_providers": [
+    {"name": "ollama", "type": "OllamaProvider", "available": true, "loaded": true, "llm_model": "phi3"}
+  ],
+  "detected_providers": ["ollama"],
+  "embedding_model": {"model_name": "bge-small-en", "dimension": 384, "loaded": true},
+  "llm_model": "phi3"
+}
+```
+
+### List Available Models
+```http
+GET /api/v1/llm/models/available
+```
+**Description**: List supported LLM and embedding models.
+
+**Response**:
+```json
+{
+  "llm_models": [
+    {"name": "phi3", "description": "Fast, efficient model good for reasoning"},
+    {"name": "mistral", "description": "Powerful model for complex tasks"}
+  ],
+  "embedding_models": [
+    {"name": "bge-small-en", "description": "High quality English embeddings"},
+    {"name": "nomic-embed-text", "description": "Good multilingual support"}
+  ]
+}
+```
+
+### List Available Providers
+```http
+GET /api/v1/llm/providers/available
+```
+**Description**: List detected LLM providers (Ollama).
+
+**Response**:
+```json
+{
+  "detected_providers": ["ollama"],
+  "providers": [
+    {"name": "ollama", "description": "Local LLM server with easy model management", "url": "https://ollama.ai", "models": ["phi3", "mistral", "llama2", "codellama"]}
+  ]
+}
+```
+
+### Configure LLM/Embedding Models
+```http
+POST /api/v1/llm/config
+```
+**Description**: Set the active LLM and embedding models.
+
+**Request Body**:
+```json
+{
+  "llm_model": "phi3",
+  "embedding_model": "bge-small-en",
+  "llm_max_tokens": 1024,
+  "llm_temperature": 0.7,
+  "llm_top_p": 0.9
+}
+```
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Configuration updated. Embedding model loaded: true, Active provider: ollama",
+  "config": {
+    "llm_model": "phi3",
+    "embedding_model": "bge-small-en",
+    "llm_max_tokens": 1024,
+    "llm_temperature": 0.7,
+    "llm_top_p": 0.9
+  }
+}
+```
+
+### Enhanced Search (LLM-powered)
+```http
+POST /api/v1/llm/search
+```
+**Description**: Perform a search and get LLM-generated insights, summary, or recommendations.
+
+**Request Body**:
+```json
+{
+  "query": "project summary",
+  "max_results": 5,
+  "use_llm": true,
+  "llm_model": "phi3",
+  "embedding_model": "bge-small-en"
+}
+```
+**Response**:
+```json
+{
+  "enhanced": true,
+  "query": "project summary",
+  "llm_response": "This project is about...",
+  "results": [ ... ],
+  "provider": "OllamaProvider",
+  "llm_model": "phi3",
+  "embedding_model": "bge-small-en"
+}
+```
+
+### Ask a Question (Q&A)
+```http
+POST /api/v1/llm/question
+```
+**Description**: Ask a question about your documents and get an LLM-generated answer.
+
+**Request Body**:
+```json
+{
+  "question": "What is this project about?",
+  "query": "project summary",
+  "max_results": 5,
+  "llm_model": "phi3"
+}
+```
+**Response**:
+```json
+{
+  "answered": true,
+  "question": "What is this project about?",
+  "answer": "This project is about...",
+  "provider": "OllamaProvider",
+  "llm_model": "phi3",
+  "embedding_model": "bge-small-en",
+  "sources": ["/path/to/doc1.txt"]
+}
+```
+
+### Summarize Search Results
+```http
+POST /api/v1/llm/summary
+```
+**Description**: Get a summary of the top search results using the LLM.
+
+**Request Body**:
+```json
+{
+  "query": "project summary",
+  "max_results": 5,
+  "llm_model": "phi3"
+}
+```
+**Response**:
+```json
+{
+  "summarized": true,
+  "summary": "The main points are...",
+  "provider": "OllamaProvider",
+  "llm_model": "phi3",
+  "embedding_model": "bge-small-en",
+  "result_count": 5
+}
+```
+
+### Example: Enhanced Search with curl
+```bash
+curl -X POST "https://localhost:8443/api/v1/llm/search" \
+     -H "Authorization: Bearer YOUR_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "query": "project summary",
+       "max_results": 5,
+       "use_llm": true,
+       "llm_model": "phi3",
+       "embedding_model": "bge-small-en"
+     }'
+```
+
+### Example: Q&A with Python
+```python
+import requests
+resp = requests.post(
+    "https://localhost:8443/api/v1/llm/question",
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    json={
+        "question": "What is this project about?",
+        "query": "project summary",
+        "max_results": 5,
+        "llm_model": "phi3"
+    },
+    verify=False
+)
+print(resp.json())
+```
+
+---
+
 ## Error Handling
 
 All endpoints return consistent error responses:
