@@ -56,8 +56,8 @@ def main():
     if not key_file or not cert_file:
         sys.exit(1)
     
-    # Use static port from settings (default 8443)
-    port = settings.PORT
+    # Use HTTPS port from settings (default 8443)
+    port = settings.HTTPS_PORT
     
     # SSL configuration
     ssl_config = {

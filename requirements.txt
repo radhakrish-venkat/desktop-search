@@ -6,9 +6,31 @@ openpyxl>=3.0.0
 python-pptx>=0.6.21
 docx2txt>=0.8
 
-# Semantic search dependencies
+# Semantic search and embeddings
 chromadb>=0.4.0
 sentence-transformers>=2.2.0
+nomic-embed-text>=0.1.0
+instructor-xl>=0.1.0
+
+# LLM and AI dependencies
+langchain>=0.1.0
+langchain-community>=0.0.10
+llama-index>=0.9.0
+transformers>=4.35.0
+torch>=2.0.0
+accelerate>=0.24.0
+
+# Vector databases and search
+faiss-cpu>=1.7.4
+whoosh>=2.7.4
+rank-bm25>=0.2.2
+
+# File parsing and processing
+unstructured>=0.10.0
+pdfplumber>=0.9.0
+python-magic>=0.4.24
+pytesseract>=0.3.10
+Pillow>=10.0.0
 
 # Google Drive integration
 google-auth>=2.0.0
@@ -19,7 +41,6 @@ google-api-python-client>=2.0.0
 # Security dependencies
 cryptography>=3.4.0
 keyring>=23.0.0
-python-magic>=0.4.24
 
 # FastAPI and web dependencies
 fastapi>=0.104.0
@@ -35,6 +56,14 @@ cryptography>=3.4.0
 # HTTP client for CLI
 requests>=2.31.0
 
+# Database and storage
+sqlite3
+sqlalchemy>=2.0.0
+
 # Development and testing
 pytest>=7.0.0
 pytest-cov>=4.0.0
+
+# Optional: GUI dependencies (for future Electron/Tauri integration)
+# electron (via npm)
+# tauri (via cargo)

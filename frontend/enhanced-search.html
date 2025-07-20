@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Hybrid Search - Desktop Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Default Theme */
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #4facfe;
+            --background-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border-color: #e1e5e9;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        /* Theme: Sunset Orange */
+        [data-theme="sunset"] {
+            --primary-color: #ff6b35;
+            --secondary-color: #f7931e;
+            --accent-color: #ff8c42;
+            --background-color: #fff5f0;
+            --surface-color: #ffffff;
+            --text-primary: #2c1810;
+            --text-secondary: #5a3d2a;
+            --text-muted: #8b6b4a;
+            --border-color: #ffe4d6;
+        }
+
+        /* Theme: Forest Green */
+        [data-theme="forest"] {
+            --primary-color: #2d5a27;
+            --secondary-color: #4a7c59;
+            --accent-color: #6b8e23;
+            --background-color: #f0f8f0;
+            --surface-color: #ffffff;
+            --text-primary: #1a2f1a;
+            --text-secondary: #3d5a3d;
+            --text-muted: #6b8e6b;
+            --border-color: #d4e6d4;
+        }
+
+        /* Theme: Midnight Dark */
+        [data-theme="midnight"] {
+            --primary-color: #1a1a2e;
+            --secondary-color: #16213e;
+            --accent-color: #0f3460;
+            --background-color: #0f0f23;
+            --surface-color: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #888888;
+            --border-color: #2a2a3e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .theme-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--surface-color);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 2px solid var(--border-color);
+        }
+
+        .theme-selector label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .theme-selector select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background: var(--surface-color);
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--surface-color);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: var(--surface-color);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .panel:hover {
+            transform: translateY(-2px);
+        }
+
+        .panel h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .search-section {
+            grid-column: 1 / -1;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 16px;
+            background: var(--surface-color);
+            color: var(--text-primary);
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .search-button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .search-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .option-group label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .option-group select, .option-group input {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background: var(--surface-color);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .results-container {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            background: var(--background-color);
+        }
+
+        .result-item {
+            background: var(--surface-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .result-item:hover {
+            transform: translateX(5px);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .result-score {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .result-path {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
+
+        .result-content {
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .qa-section {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .qa-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .qa-input input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 16px;
+            background: var(--surface-color);
+            color: var(--text-primary);
+        }
+
+        .qa-input button {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .qa-conversation {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            background: var(--background-color);
+        }
+
+        .qa-message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .qa-question {
+            background: var(--primary-color);
+            color: white;
+            margin-left: 20%;
+        }
+
+        .qa-answer {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            margin-right: 20%;
+        }
+
+        .qa-sources {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: var(--surface-color);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .error {
+            background: #fee;
+            color: var(--error-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--error-color);
+        }
+
+        .success {
+            background: #efe;
+            color: var(--success-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--success-color);
+        }
+
+        .session-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .session-button {
+            padding: 8px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background: var(--surface-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .session-button:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-box {
+                flex-direction: column;
+            }
+            
+            .search-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-selector">
+        <label for="theme-select">Theme:</label>
+        <select id="theme-select">
+            <option value="default">Default</option>
+            <option value="sunset">Sunset</option>
+            <option value="forest">Forest</option>
+            <option value="midnight">Midnight</option>
+        </select>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Enhanced Hybrid Search</h1>
+            <p>Advanced search with semantic, keyword, and AI-powered Q&A</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- Search Section -->
+            <div class="panel search-section">
+                <h2>🔍 Hybrid Search</h2>
+                
+                <div class="search-box">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Enter your search query..." />
+                    <button onclick="performSearch()" class="search-button">Search</button>
+                </div>
+
+                <div class="search-options">
+                    <div class="option-group">
+                        <label for="searchType">Search Type:</label>
+                        <select id="searchType">
+                            <option value="hybrid">Hybrid (Semantic + Keyword)</option>
+                            <option value="semantic">Semantic Only</option>
+                            <option value="keyword">Keyword Only</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="maxResults">Max Results:</label>
+                        <select id="maxResults">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="semanticWeight">Semantic Weight:</label>
+                        <input type="range" id="semanticWeight" min="0" max="1" step="0.1" value="0.7" />
+                        <span id="semanticWeightValue">0.7</span>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="keywordWeight">Keyword Weight:</label>
+                        <input type="range" id="keywordWeight" min="0" max="1" step="0.1" value="0.3" />
+                        <span id="keywordWeightValue">0.3</span>
+                    </div>
+                </div>
+
+                <div id="searchResults" class="results-container" style="display: none;">
+                    <div class="loading">Searching...</div>
+                </div>
+            </div>
+
+            <!-- Q&A Section -->
+            <div class="panel qa-section">
+                <h2>🤖 AI Q&A</h2>
+                
+                <div class="session-controls">
+                    <button onclick="newSession()" class="session-button">New Session</button>
+                    <button onclick="loadSessions()" class="session-button">Load Sessions</button>
+                    <span id="sessionId" style="color: var(--text-muted); font-size: 0.9rem;"></span>
+                </div>
+
+                <div class="qa-input">
+                    <input type="text" id="questionInput" placeholder="Ask a question about your documents..." />
+                    <button onclick="askQuestion()">Ask</button>
+                </div>
+
+                <div id="qaConversation" class="qa-conversation">
+                    <div style="text-align: center; color: var(--text-muted); padding: 40px;">
+                        Start a conversation by asking a question
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indexing Section -->
+            <div class="panel">
+                <h2>📁 Document Indexing</h2>
+                
+                <div class="option-group">
+                    <label for="indexPath">Directory Path:</label>
+                    <input type="text" id="indexPath" placeholder="/path/to/documents" />
+                </div>
+
+                <div class="search-options">
+                    <div class="option-group">
+                        <label for="chunkSize">Chunk Size:</label>
+                        <input type="number" id="chunkSize" value="1000" min="100" max="5000" />
+                    </div>
+
+                    <div class="option-group">
+                        <label for="chunkOverlap">Chunk Overlap:</label>
+                        <input type="number" id="chunkOverlap" value="200" min="0" max="1000" />
+                    </div>
+                </div>
+
+                <button onclick="indexDocuments()" class="search-button" style="width: 100%; margin-top: 15px;">
+                    Index Documents
+                </button>
+
+                <div id="indexingProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="indexProgressFill" style="width: 0%"></div>
+                    </div>
+                    <p style="text-align: center; margin-top: 10px;">Indexing documents...</p>
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="panel">
+                <h2>📊 System Statistics</h2>
+                
+                <div id="statsGrid" class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="vectorDocs">-</div>
+                        <div class="stat-label">Vector Documents</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="keywordDocs">-</div>
+                        <div class="stat-label">Keyword Documents</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="qaSessions">-</div>
+                        <div class="stat-label">Q&A Sessions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalQuestions">-</div>
+                        <div class="stat-label">Total Questions</div>
+                    </div>
+                </div>
+
+                <button onclick="loadStats()" class="search-button" style="width: 100%; margin-top: 15px;">
+                    Refresh Stats
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme management
+        const themeSelect = document.getElementById('theme-select');
+        
+        // Load saved theme
+        const savedTheme = localStorage.getItem('selectedTheme') || 'default';
+        themeSelect.value = savedTheme;
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        // Theme change handler
+        themeSelect.addEventListener('change', function() {
+            const selectedTheme = this.value;
+            document.documentElement.setAttribute('data-theme', selectedTheme);
+            localStorage.setItem('selectedTheme', selectedTheme);
+        });
+
+        // Weight sliders
+        const semanticWeight = document.getElementById('semanticWeight');
+        const keywordWeight = document.getElementById('keywordWeight');
+        const semanticWeightValue = document.getElementById('semanticWeightValue');
+        const keywordWeightValue = document.getElementById('keywordWeightValue');
+
+        semanticWeight.addEventListener('input', function() {
+            semanticWeightValue.textContent = this.value;
+            keywordWeight.value = (1 - parseFloat(this.value)).toFixed(1);
+            keywordWeightValue.textContent = keywordWeight.value;
+        });
+
+        keywordWeight.addEventListener('input', function() {
+            keywordWeightValue.textContent = this.value;
+            semanticWeight.value = (1 - parseFloat(this.value)).toFixed(1);
+            semanticWeightValue.textContent = semanticWeight.value;
+        });
+
+        // Global variables
+        let currentSessionId = null;
+
+        // Search functionality
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                showMessage('Please enter a search query', 'error');
+                return;
+            }
+
+            const searchType = document.getElementById('searchType').value;
+            const maxResults = parseInt(document.getElementById('maxResults').value);
+            const semanticWeight = parseFloat(document.getElementById('semanticWeight').value);
+            const keywordWeight = parseFloat(document.getElementById('keywordWeight').value);
+
+            const resultsContainer = document.getElementById('searchResults');
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = '<div class="loading">Searching...</div>';
+
+            try {
+                let endpoint = '/api/v1/enhanced-search/search';
+                let requestBody = {
+                    query: query,
+                    n_results: maxResults,
+                    semantic_weight: semanticWeight,
+                    keyword_weight: keywordWeight,
+                    include_metadata: true
+                };
+
+                if (searchType === 'semantic') {
+                    endpoint = `/api/v1/enhanced-search/semantic-search?query=${encodeURIComponent(query)}&n_results=${maxResults}`;
+                    requestBody = null;
+                } else if (searchType === 'keyword') {
+                    endpoint = `/api/v1/enhanced-search/keyword-search?query=${encodeURIComponent(query)}&n_results=${maxResults}`;
+                    requestBody = null;
+                }
+
+                const response = await fetch(endpoint, {
+                    method: searchType === 'hybrid' ? 'POST' : 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: searchType === 'hybrid' ? JSON.stringify(requestBody) : undefined
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displaySearchResults(data.data);
+
+            } catch (error) {
+                resultsContainer.innerHTML = `<div class="error">Search failed: ${error.message}</div>`;
+            }
+        }
+
+        function displaySearchResults(data) {
+            const resultsContainer = document.getElementById('searchResults');
+            
+            if (!data.results || data.results.length === 0) {
+                resultsContainer.innerHTML = '<div class="loading">No results found</div>';
+                return;
+            }
+
+            const resultsHtml = data.results.map(result => `
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-title">${result.filename}</div>
+                        <div class="result-score">${(result.score * 100).toFixed(1)}%</div>
+                    </div>
+                    <div class="result-path">${result.filepath}</div>
+                    <div class="result-content">${result.content}</div>
+                    <div class="result-meta">
+                        <span>Type: ${result.search_type}</span>
+                        <span>File: ${result.file_type}</span>
+                        <span>Chunk: ${result.chunk_index + 1}/${result.total_chunks}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            resultsContainer.innerHTML = resultsHtml;
+        }
+
+        // Q&A functionality
+        async function askQuestion() {
+            const question = document.getElementById('questionInput').value.trim();
+            if (!question) {
+                showMessage('Please enter a question', 'error');
+                return;
+            }
+
+            const conversation = document.getElementById('qaConversation');
+            
+            // Add question to conversation
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'qa-message qa-question';
+            questionDiv.innerHTML = `<strong>Q:</strong> ${question}`;
+            conversation.appendChild(questionDiv);
+
+            // Add loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'qa-message qa-answer';
+            loadingDiv.innerHTML = '<div class="loading">Thinking...</div>';
+            conversation.appendChild(loadingDiv);
+
+            // Scroll to bottom
+            conversation.scrollTop = conversation.scrollHeight;
+
+            try {
+                const response = await fetch('/api/v1/enhanced-search/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        session_id: currentSessionId,
+                        include_sources: true
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Update session ID if new
+                if (data.data.session_id) {
+                    currentSessionId = data.data.session_id;
+                    document.getElementById('sessionId').textContent = `Session: ${currentSessionId.substring(0, 8)}...`;
+                }
+
+                // Replace loading with answer
+                loadingDiv.innerHTML = `
+                    <strong>A:</strong> ${data.data.answer}
+                    <div class="qa-sources">
+                        Sources: ${data.data.sources.length} documents
+                    </div>
+                `;
+
+                // Clear input
+                document.getElementById('questionInput').value = '';
+
+            } catch (error) {
+                loadingDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Session management
+        function newSession() {
+            currentSessionId = null;
+            document.getElementById('sessionId').textContent = '';
+            document.getElementById('qaConversation').innerHTML = 
+                '<div style="text-align: center; color: var(--text-muted); padding: 40px;">New session started</div>';
+        }
+
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/v1/enhanced-search/sessions');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const data = await response.json();
+                
+                if (data.data.sessions.length === 0) {
+                    showMessage('No sessions found', 'info');
+                    return;
+                }
+
+                // Show sessions in a simple way (could be enhanced with a modal)
+                const sessionList = data.data.sessions.map(s => 
+                    `${s.session_id.substring(0, 8)}... (${s.question_count} questions)`
+                ).join(', ');
+                
+                showMessage(`Found ${data.data.sessions.length} sessions: ${sessionList}`, 'success');
+                
+            } catch (error) {
+                showMessage(`Error loading sessions: ${error.message}`, 'error');
+            }
+        }
+
+        // Indexing functionality
+        async function indexDocuments() {
+            const directoryPath = document.getElementById('indexPath').value.trim();
+            if (!directoryPath) {
+                showMessage('Please enter a directory path', 'error');
+                return;
+            }
+
+            const chunkSize = parseInt(document.getElementById('chunkSize').value);
+            const chunkOverlap = parseInt(document.getElementById('chunkOverlap').value);
+
+            const progressDiv = document.getElementById('indexingProgress');
+            progressDiv.style.display = 'block';
+
+            // Simulate progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress > 90) progress = 90;
+                document.getElementById('indexProgressFill').style.width = progress + '%';
+            }, 200);
+
+            try {
+                const response = await fetch('/api/v1/enhanced-search/index', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        directory_path: directoryPath,
+                        chunk_size: chunkSize,
+                        chunk_overlap: chunkOverlap,
+                        clear_existing: true
+                    })
+                });
+
+                clearInterval(progressInterval);
+                document.getElementById('indexProgressFill').style.width = '100%';
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                showMessage(`Indexing completed: ${data.data.statistics.processed_files} files, ${data.data.statistics.total_chunks} chunks`, 'success');
+                
+                // Refresh stats
+                loadStats();
+
+            } catch (error) {
+                clearInterval(progressInterval);
+                showMessage(`Indexing failed: ${error.message}`, 'error');
+            } finally {
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        // Statistics functionality
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/v1/enhanced-search/stats');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const data = await response.json();
+                const stats = data.data;
+
+                document.getElementById('vectorDocs').textContent = stats.vector_documents || 0;
+                document.getElementById('keywordDocs').textContent = stats.keyword_documents || 0;
+                document.getElementById('qaSessions').textContent = stats.qa_sessions || 0;
+                document.getElementById('totalQuestions').textContent = stats.total_questions || 0;
+
+            } catch (error) {
+                showMessage(`Error loading stats: ${error.message}`, 'error');
+            }
+        }
+
+        // Utility functions
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(messageDiv, container.firstChild);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        document.getElementById('questionInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                askQuestion();
+            }
+        });
+
+        // Initialize
+        window.addEventListener('load', function() {
+            loadStats();
+            console.log('Enhanced Hybrid Search Interface loaded');
+        });
+    </script>
+</body>
+</html> 

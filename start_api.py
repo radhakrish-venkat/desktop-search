@@ -38,11 +38,23 @@ except Exception as e:
     sys.exit(1)
 
 if __name__ == "__main__":
+    # Get port from environment or use default HTTP port
+    port = int(os.getenv("PORT", "8880"))
+    
+    print(f"🌐 Starting Desktop Search API with HTTP on port {port}...")
+    print(f"📚 API Documentation: http://localhost:{port}/docs")
+    debug_enabled = os.getenv('DEBUG', 'True').lower() == 'true'    
+    debug_status = 'Enabled' if debug_enabled else 'Disabled'
+    print(f"🔧 Debug mode: {debug_status}")
+    print(f"🔓 Protocol: HTTP (no encryption)")
+    print("\n🚀 Starting server...")
+    print("   Press Ctrl+C to stop")
+    
     # Run the FastAPI application
     uvicorn.run(
         "api.main:app",
         host="127.0.0.1",
-        port=8443,
+        port=port,
         reload=True,
         log_level="info"
     ) 
